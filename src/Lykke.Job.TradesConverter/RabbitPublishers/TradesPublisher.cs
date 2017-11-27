@@ -27,7 +27,7 @@ namespace Lykke.Job.TradesConverter.RabbitPublishers
         public void Start()
         {
             var settings = RabbitMqSubscriptionSettings
-                .CreateForPublisher(_connectionString, "tradesconverter")
+                .CreateForPublisher(_connectionString, "tradelog")
                 .MakeDurable();
 
             _publisher = new RabbitMqPublisher<TradeLogItem>(settings)
