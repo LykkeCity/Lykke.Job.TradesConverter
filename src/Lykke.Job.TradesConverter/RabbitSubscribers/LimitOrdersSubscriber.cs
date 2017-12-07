@@ -18,7 +18,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         private readonly IConsole _console;
         private readonly string _connectionString;
         private readonly string _exchangeName;
-        private RabbitMqSubscriber<LimitOrderWithTrades> _subscriber;
+        private RabbitMqSubscriber<LimitOrders> _subscriber;
 
         public LimitOrdersSubscriber(
             ITradeLogPublisher publisher,
@@ -42,11 +42,11 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 .CreateForSubscriber(_connectionString, _exchangeName, "tradesconverter")
                 .MakeDurable();
 
-            _subscriber = new RabbitMqSubscriber<LimitOrderWithTrades>(settings,
+            _subscriber = new RabbitMqSubscriber<LimitOrders>(settings,
                     new ResilientErrorHandlingStrategy(_log, settings,
                         retryTimeout: TimeSpan.FromSeconds(10),
                         next: new DeadQueueErrorHandlingStrategy(_log, settings)))
-                .SetMessageDeserializer(new JsonMessageDeserializer<LimitOrderWithTrades>())
+                .SetMessageDeserializer(new JsonMessageDeserializer<LimitOrders>())
                 .SetMessageReadStrategy(new MessageReadQueueStrategy())
                 .Subscribe(ProcessMessageAsync)
                 .CreateDefaultBinding()
@@ -55,12 +55,15 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 .Start();
         }
 
-        private async Task ProcessMessageAsync(LimitOrderWithTrades arg)
+        private async Task ProcessMessageAsync(LimitOrders arg)
         {
-            var trades = await _tradesConverter.ConvertAsync(arg);
-            foreach (var trade in trades)
+            foreach (var order in arg.Orders)
             {
-                await _publisher.PublishAsync(trade);
+                var trades = await _tradesConverter.ConvertAsync(order);
+                foreach (var trade in trades)
+                {
+                    await _publisher.PublishAsync(trade);
+                }
             }
         }
 
