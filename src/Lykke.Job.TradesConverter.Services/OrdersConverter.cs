@@ -22,24 +22,50 @@ namespace Lykke.Job.TradesConverter.Services
         public async Task<List<TradeLogItem>> ConvertAsync(LimitOrderWithTrades model)
         {
             var result = new List<TradeLogItem>();
-            if (model.Trades != null)
-                foreach (var trade in model.Trades)
+            if (model.Trades == null || model.Trades.Count == 0)
+                return result;
+
+            var clientsCache = new Dictionary<string, (string, string)>();
+            foreach (var trade in model.Trades)
+            {
+                if (!clientsCache.ContainsKey(trade.ClientId))
                 {
-                    var trades = await FromModelAsync(trade, model.Order);
-                    result.AddRange(trades);
+                    (string userId, string walletId) = await GetWalletInfoAsync(trade.ClientId);
+                    clientsCache.Add(trade.ClientId, (userId, walletId));
                 }
+                var userInfo = clientsCache[trade.ClientId];
+                var trades = FromModel(
+                    trade,
+                    model.Order,
+                    userInfo.Item1,
+                    userInfo.Item2);
+                result.AddRange(trades);
+            }
             return result;
         }
 
         public async Task<List<TradeLogItem>> ConvertAsync(MarketOrderWithTrades model)
         {
             var result = new List<TradeLogItem>();
-            if (model.Trades != null)
-                foreach (var trade in model.Trades)
+            if (model.Trades == null || model.Trades.Count == 0)
+                return result;
+
+            var clientsCache = new Dictionary<string, (string, string)>();
+            foreach (var trade in model.Trades)
+            {
+                if (!clientsCache.ContainsKey(trade.MarketClientId))
                 {
-                    var trades = await FromModelAsync(trade, model.Order);
-                    result.AddRange(trades);
+                    (string userId, string walletId) = await GetWalletInfoAsync(trade.MarketClientId);
+                    clientsCache.Add(trade.MarketClientId, (userId, walletId));
                 }
+                var userInfo = clientsCache[trade.MarketClientId];
+                var trades = FromModel(
+                    trade,
+                    model.Order,
+                    userInfo.Item1,
+                    userInfo.Item2);
+                result.AddRange(trades);
+            }
             return result;
         }
 
@@ -48,7 +74,11 @@ namespace Lykke.Job.TradesConverter.Services
             return id1.CompareTo(id2) <= 0 ? $"{id1}_{id2}" : $"{id2}_{id1}";
         }
 
-        private async Task<List<TradeLogItem>> FromModelAsync(LimitTradeInfo model, LimitOrder order)
+        private List<TradeLogItem> FromModel(
+            LimitTradeInfo model,
+            LimitOrder order,
+            string userId,
+            string walletId)
         {
             var result = new List<TradeLogItem>(4);
             string orderId = order.ExternalId;
@@ -59,7 +89,6 @@ namespace Lykke.Job.TradesConverter.Services
                 model.Asset,
                 order.Straight,
                 order.Volume);
-            (string userId, string walletId) = await GetWalletInfoAsync(model.ClientId);
             string orderType = "Limit";
             result.Add(
                 new TradeLogItem
@@ -99,7 +128,11 @@ namespace Lykke.Job.TradesConverter.Services
             return result;
         }
 
-        private async Task<List<TradeLogItem>> FromModelAsync(TradeInfo model, MarketOrder order)
+        private List<TradeLogItem> FromModel(
+            TradeInfo model,
+            MarketOrder order,
+            string userId,
+            string walletId)
         {
             var result = new List<TradeLogItem>(2);
             string orderId = order.ExternalId;
@@ -110,7 +143,6 @@ namespace Lykke.Job.TradesConverter.Services
                 model.MarketAsset,
                 order.Straight,
                 order.Volume);
-            (string userId, string walletId) = await GetWalletInfoAsync(model.MarketClientId);
             string orderType = "Market";
             result.Add(
                 new TradeLogItem
