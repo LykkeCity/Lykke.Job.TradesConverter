@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Tables;
 using Common.Log;
 using Lykke.Common.ApiLibrary.Middleware;
 using Lykke.Common.ApiLibrary.Swagger;
-using Lykke.Job.TradesConverter.Core.Services;
-using Lykke.Job.TradesConverter.Core.Settings;
-using Lykke.Job.TradesConverter.Models;
-using Lykke.Job.TradesConverter.Modules;
 using Lykke.Logs;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Lykke.Job.TradesConverter.Core.Services;
+using Lykke.Job.TradesConverter.Models;
+using Lykke.Job.TradesConverter.Modules;
+using Lykke.Job.TradesConverter.Settings;
 
 namespace Lykke.Job.TradesConverter
 {

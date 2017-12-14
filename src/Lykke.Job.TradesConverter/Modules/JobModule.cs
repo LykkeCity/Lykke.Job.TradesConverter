@@ -3,10 +3,10 @@ using Common;
 using Common.Log;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Job.TradesConverter.Core.Services;
-using Lykke.Job.TradesConverter.Core.Settings;
 using Lykke.Job.TradesConverter.Services;
 using Lykke.Job.TradesConverter.RabbitSubscribers;
 using Lykke.Job.TradesConverter.RabbitPublishers;
+using Lykke.Job.TradesConverter.Settings;
 
 namespace Lykke.Job.TradesConverter.Modules
 {
@@ -42,7 +42,7 @@ namespace Lykke.Job.TradesConverter.Modules
             builder.RegisterType<ShutdownManager>()
                 .As<IShutdownManager>();
 
-            builder.RegisterLykkeServiceClient(_settings.ClientAccountClient.ServiceUrl);
+            builder.RegisterLykkeServiceClient(_settings.ClientAccountServiceClient.ServiceUrl);
 
             builder.RegisterType<OrdersConverter>()
                 .As<IOrdersConverter>();
