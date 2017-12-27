@@ -65,7 +65,8 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 var trades = await _tradesConverter.ConvertAsync(order);
                 allTrades.AddRange(trades);
             }
-            await _publisher.PublishAsync(allTrades);
+            if (allTrades.Count > 0)
+                await _publisher.PublishAsync(allTrades);
         }
 
         public void Dispose()

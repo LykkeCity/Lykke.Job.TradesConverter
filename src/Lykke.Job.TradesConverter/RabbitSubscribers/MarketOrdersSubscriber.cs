@@ -58,7 +58,8 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         private async Task ProcessMessageAsync(MarketOrderWithTrades arg)
         {
             var trades = await _tradesConverter.ConvertAsync(arg);
-            await _publisher.PublishAsync(trades);
+            if (trades.Count > 0)
+                await _publisher.PublishAsync(trades);
         }
 
         public void Dispose()
