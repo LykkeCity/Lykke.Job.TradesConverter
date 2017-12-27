@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Autofac;
 using Common;
 using Common.Log;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
+using Lykke.Job.TradesConverter.Contract;
 using Lykke.Job.TradesConverter.Core.IncomingMessages;
 using Lykke.Job.TradesConverter.Core.Services;
 
@@ -57,14 +59,13 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
 
         private async Task ProcessMessageAsync(LimitOrders arg)
         {
+            var allTrades = new List<TradeLogItem>();
             foreach (var order in arg.Orders)
             {
                 var trades = await _tradesConverter.ConvertAsync(order);
-                foreach (var trade in trades)
-                {
-                    await _publisher.PublishAsync(trade);
-                }
+                allTrades.AddRange(trades);
             }
+            await _publisher.PublishAsync(allTrades);
         }
 
         public void Dispose()

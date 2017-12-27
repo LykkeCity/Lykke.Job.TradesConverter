@@ -186,7 +186,7 @@ namespace Lykke.Job.TradesConverter.Services
         {
             var wallet = await _clientAccountClient.GetWalletAsync(clientId);
             if (wallet != null)
-                return (ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId); // TODO - get client by wallet
+                return (ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId);
 
             string clientIdHash = ClientIdHashHelper.GetClientIdHash(clientId);
             var wallets = await _clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading);
