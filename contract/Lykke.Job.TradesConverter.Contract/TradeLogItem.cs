@@ -16,39 +16,45 @@ namespace Lykke.Job.TradesConverter.Contract
         public string UserId { get; set; }
 
         [Key(3)]
-        public string WalletId { get; set; }
+        public string HashedUserId { get; set; }
 
         [Key(4)]
-        public string OrderId { get; set; }
+        public string WalletId { get; set; }
 
         [Key(5)]
-        public string OrderType { get; set; }
+        public string WalletType { get; set; }
 
         [Key(6)]
-        public string Direction { get; set; }
+        public string OrderId { get; set; }
 
         [Key(7)]
-        public string Asset { get; set; }
+        public string OrderType { get; set; }
 
         [Key(8)]
-        public decimal Volume { get; set; }
+        public string Direction { get; set; }
 
         [Key(9)]
-        public decimal Price { get; set; }
+        public string Asset { get; set; }
 
         [Key(10)]
-        public DateTime DateTime { get; set; }
+        public decimal Volume { get; set; }
 
         [Key(11)]
-        public string OppositeOrderId { get; set; }
+        public decimal Price { get; set; }
 
         [Key(12)]
-        public string OppositeAsset { get; set; }
+        public DateTime DateTime { get; set; }
 
         [Key(13)]
-        public decimal? OppositeVolume { get; set; }
+        public string OppositeOrderId { get; set; }
 
         [Key(14)]
+        public string OppositeAsset { get; set; }
+
+        [Key(15)]
+        public decimal? OppositeVolume { get; set; }
+
+        [Key(16)]
         public bool? IsHidden { get; set; }
     }
 }

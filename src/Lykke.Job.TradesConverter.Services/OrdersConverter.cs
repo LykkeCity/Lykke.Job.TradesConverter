@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.AutorestClient.Models;
@@ -13,6 +14,8 @@ namespace Lykke.Job.TradesConverter.Services
     public class OrdersConverter : IOrdersConverter
     {
         private readonly IClientAccountClient _clientAccountClient;
+        private readonly ConcurrentDictionary<string, (string, string, string, string)> _walletInfoCache
+            = new ConcurrentDictionary<string, (string, string, string, string)>();
 
         public OrdersConverter(IClientAccountClient clientAccountClient)
         {
@@ -25,20 +28,21 @@ namespace Lykke.Job.TradesConverter.Services
             if (model.Trades == null || model.Trades.Count == 0)
                 return result;
 
-            var clientsCache = new Dictionary<string, (string, string)>();
             foreach (var trade in model.Trades)
             {
-                if (!clientsCache.ContainsKey(trade.ClientId))
+                if (!_walletInfoCache.ContainsKey(trade.ClientId))
                 {
-                    (string userId, string walletId) = await GetWalletInfoAsync(trade.ClientId);
-                    clientsCache.Add(trade.ClientId, (userId, walletId));
+                    (string userId, string hashedUserId, string walletId, string walletType) = await GetWalletInfoAsync(trade.ClientId);
+                    _walletInfoCache.TryAdd(trade.ClientId, (userId, hashedUserId, walletId, walletType));
                 }
-                var userInfo = clientsCache[trade.ClientId];
+                var userInfo = _walletInfoCache[trade.ClientId];
                 var trades = FromModel(
                     trade,
                     model.Order,
                     userInfo.Item1,
-                    userInfo.Item2);
+                    userInfo.Item2,
+                    userInfo.Item3,
+                    userInfo.Item4);
                 result.AddRange(trades);
             }
             return result;
@@ -50,20 +54,21 @@ namespace Lykke.Job.TradesConverter.Services
             if (model.Trades == null || model.Trades.Count == 0)
                 return result;
 
-            var clientsCache = new Dictionary<string, (string, string)>();
             foreach (var trade in model.Trades)
             {
-                if (!clientsCache.ContainsKey(trade.MarketClientId))
+                if (!_walletInfoCache.ContainsKey(trade.MarketClientId))
                 {
-                    (string userId, string walletId) = await GetWalletInfoAsync(trade.MarketClientId);
-                    clientsCache.Add(trade.MarketClientId, (userId, walletId));
+                    (string userId, string hashedUserId, string walletId, string walletType) = await GetWalletInfoAsync(trade.MarketClientId);
+                    _walletInfoCache.TryAdd(trade.MarketClientId, (userId, hashedUserId, walletId, walletType));
                 }
-                var userInfo = clientsCache[trade.MarketClientId];
+                var userInfo = _walletInfoCache[trade.MarketClientId];
                 var trades = FromModel(
                     trade,
                     model.Order,
                     userInfo.Item1,
-                    userInfo.Item2);
+                    userInfo.Item2,
+                    userInfo.Item3,
+                    userInfo.Item4);
                 result.AddRange(trades);
             }
             return result;
@@ -78,7 +83,9 @@ namespace Lykke.Job.TradesConverter.Services
             LimitTradeInfo model,
             LimitOrder order,
             string userId,
-            string walletId)
+            string hashedUserId,
+            string walletId,
+            string walletType)
         {
             var result = new List<TradeLogItem>(4);
             string orderId = order.ExternalId;
@@ -95,7 +102,9 @@ namespace Lykke.Job.TradesConverter.Services
                 {
                     TradeId = tradeId,
                     UserId = userId,
+                    HashedUserId = hashedUserId,
                     WalletId = walletId,
+                    WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
                     Direction = direction,
@@ -112,7 +121,9 @@ namespace Lykke.Job.TradesConverter.Services
                 {
                     TradeId = tradeId,
                     UserId = userId,
+                    HashedUserId = hashedUserId,
                     WalletId = walletId,
+                    WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
                     Direction = direction == "Sell" ? "Buy" : "Sell",
@@ -132,7 +143,9 @@ namespace Lykke.Job.TradesConverter.Services
             TradeInfo model,
             MarketOrder order,
             string userId,
-            string walletId)
+            string hashedUserId,
+            string walletId,
+            string walletType)
         {
             var result = new List<TradeLogItem>(2);
             string orderId = order.ExternalId;
@@ -149,7 +162,9 @@ namespace Lykke.Job.TradesConverter.Services
                 {
                     TradeId = tradeId,
                     UserId = userId,
+                    HashedUserId = hashedUserId,
                     WalletId = walletId,
+                    WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
                     Direction = direction,
@@ -166,7 +181,9 @@ namespace Lykke.Job.TradesConverter.Services
                 {
                     TradeId = tradeId,
                     UserId = userId,
+                    HashedUserId = hashedUserId,
                     WalletId = walletId,
+                    WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
                     Direction = direction == "Sell" ? "Buy" : "Sell",
@@ -182,18 +199,19 @@ namespace Lykke.Job.TradesConverter.Services
             return result;
         }
 
-        private async Task<(string ClientId, string WalletId)> GetWalletInfoAsync(string clientId)
+        private async Task<(string, string, string, string)> GetWalletInfoAsync(string clientId)
         {
             var wallet = await _clientAccountClient.GetWalletAsync(clientId);
             if (wallet != null)
-                return (ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId);
+                return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
 
             string clientIdHash = ClientIdHashHelper.GetClientIdHash(clientId);
             var wallets = await _clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading);
             if (wallets == null || !wallets.Any())
-                return (clientIdHash, clientIdHash);
+                return (clientId, clientIdHash, "N/A", "N/A");
+
             var tradingWallet = wallets.First();
-            return (clientIdHash, tradingWallet.Id);
+            return (clientId, clientIdHash, tradingWallet.Id, tradingWallet.Type);
         }
 
         private static string ChooseDirection(
