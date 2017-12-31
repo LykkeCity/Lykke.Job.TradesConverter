@@ -91,7 +91,7 @@ namespace Lykke.Job.TradesConverter.Services
             string orderId = order.ExternalId;
             string oppositeOrderId = model.OppositeOrderExternalId ?? model.OppositeOrderId;
             string tradeId = GetTradeId(orderId, oppositeOrderId);
-            string direction = ChooseDirection(
+            var direction = ChooseDirection(
                 order.AssetPairId,
                 model.Asset,
                 order.Straight,
@@ -126,7 +126,7 @@ namespace Lykke.Job.TradesConverter.Services
                     WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
-                    Direction = direction == "Sell" ? "Buy" : "Sell",
+                    Direction = direction == Direction.Sell ? Direction.Buy : Direction.Sell,
                     Asset = model.OppositeAsset,
                     Volume = (decimal)Math.Abs(model.OppositeVolume),
                     Price = (decimal)model.Price,
@@ -151,7 +151,7 @@ namespace Lykke.Job.TradesConverter.Services
             string orderId = order.ExternalId;
             string oppositeOrderId = model.LimitOrderExternalId ?? model.LimitOrderId;
             string tradeId = GetTradeId(orderId, oppositeOrderId);
-            string direction = ChooseDirection(
+            var direction = ChooseDirection(
                 order.AssetPairId,
                 model.MarketAsset,
                 order.Straight,
@@ -186,7 +186,7 @@ namespace Lykke.Job.TradesConverter.Services
                     WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
-                    Direction = direction == "Sell" ? "Buy" : "Sell",
+                    Direction = direction == Direction.Sell ? Direction.Buy : Direction.Sell,
                     Asset = model.LimitAsset,
                     Volume = (decimal)Math.Abs(model.LimitVolume),
                     Price = (decimal)model.Price,
@@ -214,7 +214,7 @@ namespace Lykke.Job.TradesConverter.Services
             return (clientId, clientIdHash, tradingWallet.Id, tradingWallet.Type);
         }
 
-        private static string ChooseDirection(
+        private static Direction ChooseDirection(
             string assetPair,
             string asset,
             bool straight,
@@ -223,7 +223,7 @@ namespace Lykke.Job.TradesConverter.Services
             bool isBuy = !(straight ^ (orderVolume >= 0));
             if (assetPair.EndsWith(asset))
                 isBuy = !isBuy;
-            return isBuy ? "Buy" : "Sell";
+            return isBuy ? Direction.Buy : Direction.Sell;
         }
     }
 }

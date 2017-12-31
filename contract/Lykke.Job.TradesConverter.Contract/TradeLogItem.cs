@@ -31,7 +31,7 @@ namespace Lykke.Job.TradesConverter.Contract
         public string OrderType { get; set; }
 
         [Key(8)]
-        public string Direction { get; set; }
+        public Direction Direction { get; set; }
 
         [Key(9)]
         public string Asset { get; set; }
