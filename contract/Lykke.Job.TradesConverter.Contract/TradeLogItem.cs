@@ -56,5 +56,8 @@ namespace Lykke.Job.TradesConverter.Contract
 
         [Key(16)]
         public bool? IsHidden { get; set; }
+
+        [Key(17)]
+        public TradeLogItemFee Fee { get; set; }
     }
 }

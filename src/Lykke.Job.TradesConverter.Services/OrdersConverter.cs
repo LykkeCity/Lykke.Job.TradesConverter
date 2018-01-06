@@ -115,6 +115,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.OppositeAsset,
                     OppositeVolume = (decimal)Math.Abs(model.OppositeVolume),
+                    Fee = ConvertFee(model.FeeInstruction),
                 });
             result.Add(
                 new TradeLogItem
@@ -134,6 +135,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.Asset,
                     OppositeVolume = (decimal)Math.Abs(model.Volume),
+                    Fee = ConvertFee(model.FeeInstruction),
                 });
 
             return result;
@@ -175,6 +177,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.LimitAsset,
                     OppositeVolume = (decimal)Math.Abs(model.LimitVolume),
+                    Fee = ConvertFee(model.FeeInstruction),
                 });
             result.Add(
                 new TradeLogItem
@@ -194,6 +197,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.MarketAsset,
                     OppositeVolume = (decimal)Math.Abs(model.MarketVolume),
+                    Fee = ConvertFee(model.FeeInstruction),
                 });
 
             return result;
@@ -224,6 +228,20 @@ namespace Lykke.Job.TradesConverter.Services
             if (assetPair.EndsWith(asset))
                 isBuy = !isBuy;
             return isBuy ? Direction.Buy : Direction.Sell;
+        }
+
+        private static TradeLogItemFee ConvertFee(FeeInstruction fee)
+        {
+            if (fee == null)
+                return null;
+            return new TradeLogItemFee
+            {
+                Type = fee.Type,
+                SourceClientId = fee.SourceClientId,
+                TargetClientId = fee.TargetClientId,
+                SizeType = fee.SizeType,
+                Size = fee.Size,
+            };
         }
     }
 }

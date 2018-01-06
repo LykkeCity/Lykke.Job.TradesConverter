@@ -25,5 +25,7 @@ namespace Lykke.Job.TradesConverter.Core.IncomingMessages
         public string LimitOrderExternalId { get; set; }
 
         public DateTime Timestamp { get; set; }
+
+        public FeeInstruction FeeInstruction { get; set; }
     }
 }

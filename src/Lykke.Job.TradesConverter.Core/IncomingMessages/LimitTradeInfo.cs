@@ -23,5 +23,7 @@ namespace Lykke.Job.TradesConverter.Core.IncomingMessages
         public string OppositeClientId { get; set; }
 
         public double OppositeVolume { get; set; }
+
+        public FeeInstruction FeeInstruction { get; set; }
     }
 }
