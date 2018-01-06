@@ -208,7 +208,7 @@ namespace Lykke.Job.TradesConverter.Services
             string clientIdHash = ClientIdHashHelper.GetClientIdHash(clientId);
             var wallets = await _clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading);
             if (wallets == null || !wallets.Any())
-                return (clientId, clientIdHash, "N/A", "N/A");
+                return (clientId, clientIdHash, clientId, "N/A");
 
             var tradingWallet = wallets.First();
             return (clientId, clientIdHash, tradingWallet.Id, tradingWallet.Type);
