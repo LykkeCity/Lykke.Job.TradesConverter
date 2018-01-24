@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Common.Log;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.AutorestClient.Models;
 using Lykke.Job.TradesConverter.Contract;
@@ -13,13 +14,17 @@ namespace Lykke.Job.TradesConverter.Services
 {
     public class OrdersConverter : IOrdersConverter
     {
+        private const int _maxRetryCount = 5;
+
         private readonly IClientAccountClient _clientAccountClient;
+        private readonly ILog _log;
         private readonly ConcurrentDictionary<string, (string, string, string, string)> _walletInfoCache
             = new ConcurrentDictionary<string, (string, string, string, string)>();
 
-        public OrdersConverter(IClientAccountClient clientAccountClient)
+        public OrdersConverter(IClientAccountClient clientAccountClient, ILog log)
         {
             _clientAccountClient = clientAccountClient;
+            _log = log;
         }
 
         public async Task<List<TradeLogItem>> ConvertAsync(LimitOrderWithTrades model)
@@ -205,17 +210,33 @@ namespace Lykke.Job.TradesConverter.Services
 
         private async Task<(string, string, string, string)> GetWalletInfoAsync(string clientId)
         {
-            var wallet = await _clientAccountClient.GetWalletAsync(clientId);
-            if (wallet != null)
-                return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
-
+            int retryCount = 0;
             string clientIdHash = ClientIdHashHelper.GetClientIdHash(clientId);
-            var wallets = await _clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading);
-            if (wallets == null || !wallets.Any())
-                return (clientId, clientIdHash, clientId, "N/A");
+            do
+            {
+                try
+                {
+                    var wallet = await _clientAccountClient.GetWalletAsync(clientId);
+                    if (wallet != null)
+                        return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
 
-            var tradingWallet = wallets.First();
-            return (clientId, clientIdHash, tradingWallet.Id, tradingWallet.Type);
+                    var wallets = await _clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading);
+                    if (wallets == null || !wallets.Any())
+                        return (clientId, clientIdHash, clientId, "N/A");
+
+                    var tradingWallet = wallets.First();
+                    return (clientId, clientIdHash, tradingWallet.Id, tradingWallet.Type);
+                }
+                catch (Exception ex)
+                {
+                    await _log.WriteInfoAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), ex.ToString());
+                }
+                ++retryCount;
+            } while (retryCount <= _maxRetryCount);
+
+            await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Couldn't get wallet from ClientAccount service for {clientId}");
+
+            return (clientId, clientIdHash, clientId, "N/A");
         }
 
         private static Direction ChooseDirection(

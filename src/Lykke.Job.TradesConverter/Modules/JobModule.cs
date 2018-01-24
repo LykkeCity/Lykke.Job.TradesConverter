@@ -47,9 +47,9 @@ namespace Lykke.Job.TradesConverter.Modules
             builder.RegisterType<OrdersConverter>()
                 .As<IOrdersConverter>();
 
-            RegisterRabbitMqPublishers(builder);
-
             RegisterRabbitMqSubscribers(builder);
+
+            RegisterRabbitMqPublishers(builder);
         }
 
         private void RegisterRabbitMqSubscribers(ContainerBuilder builder)
