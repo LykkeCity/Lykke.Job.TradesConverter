@@ -15,6 +15,7 @@ namespace Lykke.Job.TradesConverter.Services
     public class OrdersConverter : IOrdersConverter
     {
         private const int _maxRetryCount = 5;
+        private const int _serviceCallTimeout = 100000;
 
         private readonly IClientAccountClient _clientAccountClient;
         private readonly ILog _log;
@@ -208,6 +209,14 @@ namespace Lykke.Job.TradesConverter.Services
             return result;
         }
 
+        private static async Task<T> TimeoutAfter<T>(Task<T> task, int millisecondsTimeout)
+        {
+            if (task != await Task.WhenAny(task, Task.Delay(millisecondsTimeout)))
+                throw new TimeoutException();
+
+            return await task;
+        }
+
         private async Task<(string, string, string, string)> GetWalletInfoAsync(string clientId)
         {
             int retryCount = 0;
@@ -216,11 +225,11 @@ namespace Lykke.Job.TradesConverter.Services
             {
                 try
                 {
-                    var wallet = await _clientAccountClient.GetWalletAsync(clientId);
+                    var wallet = await TimeoutAfter(_clientAccountClient.GetWalletAsync(clientId), _serviceCallTimeout);
                     if (wallet != null)
                         return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
 
-                    var wallets = await _clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading);
+                    var wallets = await TimeoutAfter(_clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading), _serviceCallTimeout);
                     if (wallets == null || !wallets.Any())
                         return (clientId, clientIdHash, clientId, "N/A");
 
