@@ -42,10 +42,12 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 .CreateForSubscriber(_connectionString, _exchangeName, "tradesconverter")
                 .MakeDurable();
 
-            _subscriber = new RabbitMqSubscriber<MarketOrderWithTrades>(settings,
+            _subscriber = new RabbitMqSubscriber<MarketOrderWithTrades>(
+                    settings,
                     new ResilientErrorHandlingStrategy(_log, settings,
                         retryTimeout: TimeSpan.FromSeconds(10),
-                        next: new DeadQueueErrorHandlingStrategy(_log, settings)))
+                        next: new DeadQueueErrorHandlingStrategy(_log, settings)),
+                    true)
                 .SetMessageDeserializer(new JsonMessageDeserializer<MarketOrderWithTrades>())
                 .SetMessageReadStrategy(new MessageReadQueueStrategy())
                 .Subscribe(ProcessMessageAsync)
