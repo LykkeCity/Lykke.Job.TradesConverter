@@ -1,5 +1,4 @@
 ﻿using Autofac;
-using Common;
 using Common.Log;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Job.TradesConverter.Core.Services;
@@ -56,7 +55,6 @@ namespace Lykke.Job.TradesConverter.Modules
         {
             builder.RegisterType<MarketOrdersSubscriber>()
                 .As<IStartable>()
-                .As<IStopable>()
                 .AutoActivate()
                 .SingleInstance()
                 .WithParameter("connectionString", _settings.TradesConverterJob.Rabbit.InputConnectionString)
@@ -64,7 +62,6 @@ namespace Lykke.Job.TradesConverter.Modules
 
             builder.RegisterType<LimitOrdersSubscriber>()
                 .As<IStartable>()
-                .As<IStopable>()
                 .AutoActivate()
                 .SingleInstance()
                 .WithParameter("connectionString", _settings.TradesConverterJob.Rabbit.InputConnectionString)
@@ -76,6 +73,7 @@ namespace Lykke.Job.TradesConverter.Modules
             builder.RegisterType<TradesPublisher>()
                 .As<ITradeLogPublisher>()
                 .As<IStartable>()
+                .AutoActivate()
                 .SingleInstance()
                 .WithParameter(TypedParameter.From(_settings.TradesConverterJob.Rabbit.OutputConnectionString));
         }

@@ -46,8 +46,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                     settings,
                     new ResilientErrorHandlingStrategy(_log, settings,
                         retryTimeout: TimeSpan.FromSeconds(10),
-                        next: new DeadQueueErrorHandlingStrategy(_log, settings)),
-                    true)
+                        next: new DeadQueueErrorHandlingStrategy(_log, settings)))
                 .SetMessageDeserializer(new JsonMessageDeserializer<MarketOrderWithTrades>())
                 .SetMessageReadStrategy(new MessageReadQueueStrategy())
                 .Subscribe(ProcessMessageAsync)
