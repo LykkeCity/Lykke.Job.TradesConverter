@@ -60,14 +60,21 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
 
         private async Task ProcessMessageAsync(LimitOrders arg)
         {
-            var allTrades = new List<TradeLogItem>();
-            foreach (var order in arg.Orders)
+            try
             {
-                var trades = await _tradesConverter.ConvertAsync(order);
-                allTrades.AddRange(trades);
+                var allTrades = new List<TradeLogItem>();
+                foreach (var order in arg.Orders)
+                {
+                    var trades = await _tradesConverter.ConvertAsync(order);
+                    allTrades.AddRange(trades);
+                }
+                if (allTrades.Count > 0)
+                    await _publisher.PublishAsync(allTrades);
             }
-            if (allTrades.Count > 0)
-                await _publisher.PublishAsync(allTrades);
+            catch (Exception ex)
+            {
+                await _log.WriteErrorAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), ex);
+            }
         }
 
         public void Dispose()
