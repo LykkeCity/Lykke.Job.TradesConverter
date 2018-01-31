@@ -60,9 +60,12 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         {
             try
             {
+                var start = DateTime.UtcNow;
                 var trades = await _tradesConverter.ConvertAsync(arg);
                 if (trades.Count > 0)
                     await _publisher.PublishAsync(trades);
+                if (DateTime.UtcNow.Subtract(start) > TimeSpan.FromMinutes(2))
+                    await _log.WriteInfoAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing: {arg.ToJson()}");
             }
             catch (Exception ex)
             {

@@ -62,6 +62,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         {
             try
             {
+                var start = DateTime.UtcNow;
                 var allTrades = new List<TradeLogItem>();
                 foreach (var order in arg.Orders)
                 {
@@ -70,6 +71,8 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 }
                 if (allTrades.Count > 0)
                     await _publisher.PublishAsync(allTrades);
+                if (DateTime.UtcNow.Subtract(start) > TimeSpan.FromMinutes(2))
+                    await _log.WriteInfoAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing: {arg.ToJson()}");
             }
             catch (Exception ex)
             {
