@@ -121,7 +121,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.OppositeAsset,
                     OppositeVolume = (decimal)Math.Abs(model.OppositeVolume),
-                    Fee = ConvertFee(model.FeeInstruction),
+                    Fee = ConvertFee(model.Fees, model.Asset),
                 });
             result.Add(
                 new TradeLogItem
@@ -141,7 +141,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.Asset,
                     OppositeVolume = (decimal)Math.Abs(model.Volume),
-                    Fee = ConvertFee(model.FeeInstruction),
+                    Fee = ConvertFee(model.Fees, model.OppositeAsset),
                 });
 
             return result;
@@ -183,7 +183,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.LimitAsset,
                     OppositeVolume = (decimal)Math.Abs(model.LimitVolume),
-                    Fee = ConvertFee(model.FeeInstruction),
+                    Fee = ConvertFee(model.Fees, model.MarketAsset),
                 });
             result.Add(
                 new TradeLogItem
@@ -203,7 +203,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OppositeOrderId = oppositeOrderId,
                     OppositeAsset = model.MarketAsset,
                     OppositeVolume = (decimal)Math.Abs(model.MarketVolume),
-                    Fee = ConvertFee(model.FeeInstruction),
+                    Fee = ConvertFee(model.Fees, model.LimitAsset),
                 });
 
             return result;
@@ -260,18 +260,25 @@ namespace Lykke.Job.TradesConverter.Services
             return isBuy ? Direction.Buy : Direction.Sell;
         }
 
-        private static TradeLogItemFee ConvertFee(FeeInstruction fee)
+        private static TradeLogItemFee ConvertFee(List<Fee> fees, string assetId)
         {
-            if (fee == null)
+            if (fees == null)
                 return null;
-            return new TradeLogItemFee
-            {
-                Type = fee.Type,
-                SourceClientId = fee.SourceClientId,
-                TargetClientId = fee.TargetClientId,
-                SizeType = fee.SizeType,
-                Size = fee.Size,
-            };
+            return fees
+                .Where(f => f.Transfer.Asset == assetId)
+                .Select(f =>
+                    new TradeLogItemFee
+                    {
+                        FromClientId = f.Transfer.FromClientId,
+                        ToClientId = f.Transfer.ToClientId,
+                        DateTime = f.Transfer.DateTime,
+                        Volume = f.Transfer.Volume,
+                        Asset = f.Transfer.Asset,
+                        Type = f.Instruction.Type,
+                        SizeType = f.Instruction.SizeType,
+                        Size = f.Instruction.Size,
+                    })
+                .FirstOrDefault();
         }
     }
 }

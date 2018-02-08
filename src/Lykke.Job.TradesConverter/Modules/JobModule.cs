@@ -13,12 +13,13 @@ namespace Lykke.Job.TradesConverter.Modules
     {
         private readonly AppSettings _settings;
         private readonly ILog _log;
-        private readonly IConsole _console = new LogToConsole();
+        private readonly IConsole _console;
 
-        public JobModule(AppSettings settings, ILog log)
+        public JobModule(AppSettings settings, ILog log, IConsole console)
         {
             _settings = settings;
             _log = log;
+            _console = console;
         }
 
         protected override void Load(ContainerBuilder builder)

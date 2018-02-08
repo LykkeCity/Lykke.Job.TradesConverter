@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Lykke.Job.TradesConverter.Core.IncomingMessages
 {
@@ -26,6 +27,6 @@ namespace Lykke.Job.TradesConverter.Core.IncomingMessages
 
         public DateTime Timestamp { get; set; }
 
-        public FeeInstruction FeeInstruction { get; set; }
+        public List<Fee> Fees { get; set; }
     }
 }
