@@ -265,7 +265,7 @@ namespace Lykke.Job.TradesConverter.Services
             if (fees == null)
                 return null;
             return fees
-                .Where(f => f.Transfer.Asset == assetId)
+                .Where(f => f != null && f.Transfer != null && f.Transfer.Asset == assetId)
                 .Select(f =>
                     new TradeLogItemFee
                     {
