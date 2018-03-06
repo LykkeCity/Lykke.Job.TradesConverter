@@ -277,6 +277,9 @@ namespace Lykke.Job.TradesConverter.Services
                         Type = f.Instruction.Type,
                         SizeType = f.Instruction.SizeType,
                         Size = f.Instruction.Size,
+                        MakerSizeType = f.Instruction.MakerSizeType,
+                        MakerSize = f.Instruction.MakerSize,
+                        MakerFeeModificator = f.Instruction.MakerFeeModificator,
                     })
                 .FirstOrDefault();
         }

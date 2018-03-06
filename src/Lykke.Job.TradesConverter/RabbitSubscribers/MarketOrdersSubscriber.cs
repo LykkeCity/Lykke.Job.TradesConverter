@@ -69,7 +69,8 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), ex);
+                await _log.WriteErrorAsync("MarketOrdersSubscriber.ProcessMessageAsync", arg.ToJson(), ex);
+                throw;
             }
         }
 

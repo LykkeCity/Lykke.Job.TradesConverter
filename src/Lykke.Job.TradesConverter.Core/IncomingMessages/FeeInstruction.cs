@@ -11,5 +11,11 @@
         public string SizeType { get; set; }
 
         public double? Size { get; set; }
+
+        public string MakerSizeType { get; set; }
+
+        public double? MakerSize { get; set; }
+
+        public double? MakerFeeModificator { get; set; }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Lykke.Job.TradesConverter.Settings
+﻿using Lykke.SettingsReader.Attributes;
+
+namespace Lykke.Job.TradesConverter.Settings
 {
     public class AppSettings
     {
@@ -16,6 +18,7 @@
 
     public class ClientAccountClientSettings
     {
+        [HttpCheck("api/isalive")]
         public string ServiceUrl { get; set; }
     }
 
@@ -28,13 +31,16 @@
 
     public class DbSettings
     {
+        [AzureTableCheck]
         public string LogsConnString { get; set; }
     }
 
     public class RabbitMqSettings
     {
+        [AmqpCheck]
         public string InputConnectionString { get; set; }
 
+        [AmqpCheck]
         public string OutputConnectionString { get; set; }
     }
 
