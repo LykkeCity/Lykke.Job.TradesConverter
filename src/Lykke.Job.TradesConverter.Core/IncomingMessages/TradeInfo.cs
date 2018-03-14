@@ -5,6 +5,8 @@ namespace Lykke.Job.TradesConverter.Core.IncomingMessages
 {
     public class TradeInfo
     {
+        public string TradeId { get; set; }
+
         public string MarketOrderId { get; set; }
 
         public string MarketClientId { get; set; }

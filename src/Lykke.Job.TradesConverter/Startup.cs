@@ -11,12 +11,12 @@ using AzureStorage.Tables;
 using Common.Log;
 using Lykke.Common.ApiLibrary.Middleware;
 using Lykke.Common.ApiLibrary.Swagger;
+using Lykke.Common.Api.Contract.Responses;
 using Lykke.Logs;
 using Lykke.Logs.Slack;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
 using Lykke.Job.TradesConverter.Core.Services;
-using Lykke.Job.TradesConverter.Models;
 using Lykke.Job.TradesConverter.Modules;
 using Lykke.Job.TradesConverter.Settings;
 

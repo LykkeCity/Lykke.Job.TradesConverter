@@ -5,6 +5,8 @@ namespace Lykke.Job.TradesConverter.Core.IncomingMessages
 {
     public class LimitTradeInfo
     {
+        public string TradeId { get; set; }
+
         public string ClientId { get; set; }
 
         public string Asset { get; set; }

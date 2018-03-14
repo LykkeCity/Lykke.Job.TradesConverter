@@ -106,6 +106,7 @@ namespace Lykke.Job.TradesConverter.Services
             result.Add(
                 new TradeLogItem
                 {
+                    TradeLegId = model.TradeId,
                     TradeId = tradeId,
                     UserId = userId,
                     HashedUserId = hashedUserId,
@@ -126,6 +127,7 @@ namespace Lykke.Job.TradesConverter.Services
             result.Add(
                 new TradeLogItem
                 {
+                    TradeLegId = model.TradeId,
                     TradeId = tradeId,
                     UserId = userId,
                     HashedUserId = hashedUserId,
@@ -168,6 +170,7 @@ namespace Lykke.Job.TradesConverter.Services
             result.Add(
                 new TradeLogItem
                 {
+                    TradeLegId = model.TradeId,
                     TradeId = tradeId,
                     UserId = userId,
                     HashedUserId = hashedUserId,
@@ -188,6 +191,7 @@ namespace Lykke.Job.TradesConverter.Services
             result.Add(
                 new TradeLogItem
                 {
+                    TradeLegId = model.TradeId,
                     TradeId = tradeId,
                     UserId = userId,
                     HashedUserId = hashedUserId,

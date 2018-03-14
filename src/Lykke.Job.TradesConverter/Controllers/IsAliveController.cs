@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using Lykke.Job.TradesConverter.Core.Services;
-using Lykke.Job.TradesConverter.Models;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Lykke.Common.Api.Contract.Responses;
+using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.Controllers
 {
