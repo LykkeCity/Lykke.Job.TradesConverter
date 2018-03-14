@@ -1,6 +1,5 @@
 ﻿using Autofac;
 using Common.Log;
-using Lykke.Common;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Job.TradesConverter.Core.Services;
 using Lykke.Job.TradesConverter.Services;
@@ -44,8 +43,6 @@ namespace Lykke.Job.TradesConverter.Modules
                 .As<IShutdownManager>();
 
             builder.RegisterLykkeServiceClient(_settings.ClientAccountServiceClient.ServiceUrl);
-
-            builder.RegisterResourcesMonitoring();
 
             builder.RegisterType<OrdersConverter>()
                 .As<IOrdersConverter>();
