@@ -6,6 +6,8 @@ namespace Lykke.Job.TradesConverter.Contract
     [MessagePackObject(keyAsPropertyName: true)]
     public class TradeLogItem
     {
+        public long Id { get; set; }
+
         public string TradeLegId { get; set; }
 
         public string TradeId { get; set; }
