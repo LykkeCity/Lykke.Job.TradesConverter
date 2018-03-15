@@ -229,11 +229,17 @@ namespace Lykke.Job.TradesConverter.Services
             {
                 try
                 {
+                    var start = DateTime.UtcNow;
                     var wallet = await TimeoutAfter(_clientAccountClient.GetWalletAsync(clientId), _serviceCallTimeout);
+                    if (DateTime.UtcNow - start > TimeSpan.FromMinutes(1))
+                        await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetWalletAsync with id = {clientId}");
                     if (wallet != null)
                         return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
 
+                    start = DateTime.UtcNow;
                     var wallets = await TimeoutAfter(_clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading), _serviceCallTimeout);
+                    if (DateTime.UtcNow - start > TimeSpan.FromMinutes(1))
+                        await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetClientWalletsByTypeAsync with id = {clientId}");
                     if (wallets == null || !wallets.Any())
                         return (clientId, clientIdHash, clientId, "N/A");
 
@@ -242,7 +248,7 @@ namespace Lykke.Job.TradesConverter.Services
                 }
                 catch (Exception ex)
                 {
-                    await _log.WriteInfoAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), ex.ToString());
+                    await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), ex.ToString());
                 }
                 ++retryCount;
             } while (retryCount <= _maxRetryCount);

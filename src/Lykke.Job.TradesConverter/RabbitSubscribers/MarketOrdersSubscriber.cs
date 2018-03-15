@@ -65,7 +65,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 if (trades.Count > 0)
                     await _publisher.PublishAsync(trades);
                 if (DateTime.UtcNow.Subtract(start) > TimeSpan.FromMinutes(2))
-                    await _log.WriteInfoAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing: {arg.ToJson()}");
+                    await _log.WriteWarningAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing: {arg.ToJson()}");
             }
             catch (Exception ex)
             {
