@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Common.Log;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.AutorestClient.Models;
@@ -12,6 +13,7 @@ using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.Services
 {
+    [UsedImplicitly]
     public class OrdersConverter : IOrdersConverter
     {
         private const int _maxRetryCount = 5;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Autofac;
+using JetBrains.Annotations;
 using Common;
 using Common.Log;
 using Lykke.RabbitMqBroker;
@@ -10,6 +11,7 @@ using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.RabbitSubscribers
 {
+    [UsedImplicitly]
     public class MarketOrdersSubscriber : IStartable, IStopable
     {
         private readonly ITradeLogPublisher _publisher;
@@ -64,8 +66,9 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 var trades = await _tradesConverter.ConvertAsync(arg);
                 if (trades.Count > 0)
                     await _publisher.PublishAsync(trades);
-                if (DateTime.UtcNow.Subtract(start) > TimeSpan.FromMinutes(2))
-                    await _log.WriteWarningAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing: {arg.ToJson()}");
+                var elapsed = DateTime.UtcNow.Subtract(start); 
+                if (elapsed > TimeSpan.FromMinutes(2))
+                    await _log.WriteWarningAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing ({elapsed}): {arg.ToJson()}");
             }
             catch (Exception ex)
             {

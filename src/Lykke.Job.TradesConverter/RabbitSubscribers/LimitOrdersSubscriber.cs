@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Autofac;
 using Common;
 using Common.Log;
@@ -12,6 +13,7 @@ using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.RabbitSubscribers
 {
+    [UsedImplicitly]
     public class LimitOrdersSubscriber : IStartable, IStopable
     {
         private readonly ITradeLogPublisher _publisher;
@@ -71,8 +73,9 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 }
                 if (allTrades.Count > 0)
                     await _publisher.PublishAsync(allTrades);
-                if (DateTime.UtcNow.Subtract(start) > TimeSpan.FromMinutes(2))
-                    await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing: {arg.ToJson()}");
+                var elapsed = DateTime.UtcNow.Subtract(start); 
+                if (elapsed > TimeSpan.FromMinutes(2))
+                    await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing ({elapsed}): {arg.ToJson()}");
             }
             catch (Exception ex)
             {

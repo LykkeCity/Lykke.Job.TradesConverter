@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Common.Log;
 using Lykke.Job.TradesConverter.Contract;
 using Lykke.Job.TradesConverter.Core.Services;
@@ -8,6 +9,7 @@ using Lykke.RabbitMqBroker.Subscriber;
 
 namespace Lykke.Job.TradesConverter.RabbitPublishers
 {
+    [UsedImplicitly]
     public class TradesPublisher : ITradeLogPublisher
     {
         private readonly ILog _log;
