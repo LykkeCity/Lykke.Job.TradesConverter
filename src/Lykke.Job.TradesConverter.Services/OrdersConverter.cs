@@ -23,6 +23,7 @@ namespace Lykke.Job.TradesConverter.Services
         private readonly ILog _log;
         private readonly ConcurrentDictionary<string, (string, string, string, string)> _walletInfoCache
             = new ConcurrentDictionary<string, (string, string, string, string)>();
+        private readonly TimeSpan _clientAccountCallThreshold = TimeSpan.FromSeconds(10);
 
         public OrdersConverter(IClientAccountClient clientAccountClient, ILog log)
         {
@@ -233,14 +234,14 @@ namespace Lykke.Job.TradesConverter.Services
                 {
                     var start = DateTime.UtcNow;
                     var wallet = await TimeoutAfter(_clientAccountClient.GetWalletAsync(clientId), _serviceCallTimeout);
-                    if (DateTime.UtcNow - start > TimeSpan.FromMinutes(1))
+                    if (DateTime.UtcNow - start > _clientAccountCallThreshold)
                         await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetWalletAsync with id = {clientId}");
                     if (wallet != null)
                         return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
 
                     start = DateTime.UtcNow;
                     var wallets = await TimeoutAfter(_clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading), _serviceCallTimeout);
-                    if (DateTime.UtcNow - start > TimeSpan.FromMinutes(1))
+                    if (DateTime.UtcNow - start > _clientAccountCallThreshold)
                         await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetClientWalletsByTypeAsync with id = {clientId}");
                     if (wallets == null || !wallets.Any())
                         return (clientId, clientIdHash, clientId, "N/A");
