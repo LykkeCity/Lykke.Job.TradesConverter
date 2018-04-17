@@ -23,6 +23,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         private readonly string _connectionString;
         private readonly string _exchangeName;
         private RabbitMqSubscriber<LimitOrders> _subscriber;
+        private readonly TimeSpan _processTimeThreshold = TimeSpan.FromMinutes(1);
 
         public LimitOrdersSubscriber(
             ITradeLogPublisher publisher,
@@ -71,10 +72,18 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                     var trades = await _tradesConverter.ConvertAsync(order);
                     allTrades.AddRange(trades);
                 }
+
                 if (allTrades.Count > 0)
+                {
+                    var publishStart = DateTime.UtcNow;
                     await _publisher.PublishAsync(allTrades);
+                    var publishTime = DateTime.UtcNow.Subtract(publishStart); 
+                    if (publishTime > _processTimeThreshold)
+                        await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long publish ({publishTime}): {allTrades.ToJson()}");
+                }
+                    
                 var elapsed = DateTime.UtcNow.Subtract(start); 
-                if (elapsed > TimeSpan.FromMinutes(2))
+                if (elapsed > _processTimeThreshold)
                     await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing ({elapsed}): {arg.ToJson()}");
             }
             catch (Exception ex)
