@@ -69,7 +69,11 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 var allTrades = new List<TradeLogItem>();
                 foreach (var order in arg.Orders)
                 {
+                    var convertStart = DateTime.UtcNow;
                     var trades = await _tradesConverter.ConvertAsync(order);
+                    var convertTime = DateTime.UtcNow.Subtract(convertStart);
+                    if (convertTime > _processTimeThreshold)
+                        await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long convert ({convertTime}): from {order.ToJson()} to {trades.ToJson()}");
                     allTrades.AddRange(trades);
                 }
 
@@ -79,9 +83,13 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                     await _publisher.PublishAsync(allTrades);
                     var publishTime = DateTime.UtcNow.Subtract(publishStart); 
                     if (publishTime > _processTimeThreshold)
+                    {
                         await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long publish ({publishTime}): {allTrades.ToJson()}");
+                        _publisher.Stop();
+                        _publisher.Start();
+                    }
                 }
-                    
+
                 var elapsed = DateTime.UtcNow.Subtract(start); 
                 if (elapsed > _processTimeThreshold)
                     await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing ({elapsed}): {arg.ToJson()}");
