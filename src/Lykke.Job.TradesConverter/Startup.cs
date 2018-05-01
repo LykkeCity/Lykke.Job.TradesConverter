@@ -179,7 +179,7 @@ namespace Lykke.Job.TradesConverter
                 var host = Dns.GetHostEntry(Dns.GetHostName());
                 foreach (var ip in host.AddressList)
                 {
-                    _consoleLog.WriteInfo(nameof(TryRegisterInMonitoringAsync), ip.ToJson(), "Found ip address");
+                    _consoleLog.WriteInfo(nameof(TryRegisterInMonitoringAsync), "", $"Found ip address: {ip.AddressFamily} - {ip.ToString()}");
                     //if (ip.AddressFamily == AddressFamily.InterNetwork)
                     //{
                     //    return ip.ToString();
