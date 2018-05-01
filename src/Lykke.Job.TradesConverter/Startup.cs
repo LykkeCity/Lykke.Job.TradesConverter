@@ -122,7 +122,7 @@ namespace Lykke.Job.TradesConverter
                 await ApplicationContainer.Resolve<IStartupManager>().StartAsync();
                 await Log.WriteMonitorAsync("", "", "Started");
 
-                await TryRegisterInMonitoringAsync(Configuration, _monitoringServiceUrl);
+                await TryRegisterInMonitoringAsync(Configuration, _monitoringServiceUrl, Log);
             }
             catch (Exception ex)
             {
