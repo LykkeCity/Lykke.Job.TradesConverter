@@ -170,18 +170,29 @@ namespace Lykke.Job.TradesConverter
             }
         }
 
-        private async static Task TryRegisterInMonitoringAsync(IConfigurationRoot configuration, string monitoringServiceUrl)
+        private async static Task TryRegisterInMonitoringAsync(IConfigurationRoot configuration, string monitoringServiceUrl, ILog log)
         {
-            string myMonitoringUrl = configuration.GetValue<string>("MyMonitoringUrl");
-            if (string.IsNullOrWhiteSpace(myMonitoringUrl))
-                myMonitoringUrl = "127.0.0.1";
-            var monitoringService = new MonitoringServiceFacade(monitoringServiceUrl);
-            await monitoringService.MonitorUrl(
-                new UrlMonitoringObjectModel
+            try
+            {
+                string myMonitoringUrl = configuration.GetValue<string>("MyMonitoringUrl");
+                if (string.IsNullOrWhiteSpace(myMonitoringUrl))
                 {
-                    Url = myMonitoringUrl,
-                    ServiceName = PlatformServices.Default.Application.ApplicationName,
-                });
+                    myMonitoringUrl = "127.0.0.1";
+                    log.WriteInfo("Auto-registration in monitoring", "", $"MyMonitoringUrl environment variable is not found. Using 127.0.0.1 for monitoring registration");
+                }
+                var monitoringService = new MonitoringServiceFacade(monitoringServiceUrl);
+                await monitoringService.MonitorUrl(
+                    new UrlMonitoringObjectModel
+                    {
+                        Url = myMonitoringUrl,
+                        ServiceName = PlatformServices.Default.Application.ApplicationName,
+                    });
+                log.WriteInfo("Auto-registration in monitoring", "", $"Auto-registered in Monitoring on {myMonitoringUrl}");
+            }
+            catch (Exception ex)
+            {
+                log.WriteError("Auto-registration in monitoring", "", ex);
+            }
         }
 
         private ILog CreateLogWithSlack(IServiceCollection services, IReloadingManager<AppSettings> settings)
