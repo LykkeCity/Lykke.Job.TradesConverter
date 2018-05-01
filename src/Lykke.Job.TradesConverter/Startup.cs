@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.PlatformAbstractions;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Tables;
-using Common;
 using Common.Log;
 using Lykke.Common.ApiLibrary.Middleware;
 using Lykke.Common.ApiLibrary.Swagger;
@@ -19,6 +17,8 @@ using Lykke.Logs;
 using Lykke.Logs.Slack;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
+using Lykke.MonitoringServiceApiCaller;
+using Lykke.MonitoringServiceApiCaller.Models;
 using Lykke.Job.TradesConverter.Core.Services;
 using Lykke.Job.TradesConverter.Modules;
 using Lykke.Job.TradesConverter.Settings;
@@ -28,6 +28,7 @@ namespace Lykke.Job.TradesConverter
     public class Startup
     {
         private LogToConsole _consoleLog;
+        private string _monitoringServiceUrl;
 
         public IHostingEnvironment Environment { get; }
         public IContainer ApplicationContainer { get; private set; }
@@ -62,6 +63,7 @@ namespace Lykke.Job.TradesConverter
 
                 var builder = new ContainerBuilder();
                 var appSettings = Configuration.LoadSettings<AppSettings>();
+                _monitoringServiceUrl = appSettings.CurrentValue.MonitoringServiceClient.MonitoringServiceUrl;
 
                 Log = CreateLogWithSlack(services, appSettings);
 
@@ -120,7 +122,7 @@ namespace Lykke.Job.TradesConverter
                 await ApplicationContainer.Resolve<IStartupManager>().StartAsync();
                 await Log.WriteMonitorAsync("", "", "Started");
 
-                await TryRegisterInMonitoringAsync();
+                await TryRegisterInMonitoringAsync(Configuration, _monitoringServiceUrl);
             }
             catch (Exception ex)
             {
@@ -152,12 +154,9 @@ namespace Lykke.Job.TradesConverter
             try
             {
                 // NOTE: Job can't recieve and process IsAlive requests here, so you can destroy all resources
-                
                 if (Log != null)
-                {
                     await Log.WriteMonitorAsync("", "", "Terminating");
-                }
-                
+
                 ApplicationContainer.Dispose();
             }
             catch (Exception ex)
@@ -171,21 +170,18 @@ namespace Lykke.Job.TradesConverter
             }
         }
 
-        private async Task TryRegisterInMonitoringAsync()
+        private async static Task TryRegisterInMonitoringAsync(IConfigurationRoot configuration, string monitoringServiceUrl)
         {
-            string myMonitoringUrl = Configuration.GetValue<string>("MyMonitoringUrl");
+            string myMonitoringUrl = configuration.GetValue<string>("MyMonitoringUrl");
             if (string.IsNullOrWhiteSpace(myMonitoringUrl))
-            {
-                var host = Dns.GetHostEntry(Dns.GetHostName());
-                foreach (var ip in host.AddressList)
+                myMonitoringUrl = "127.0.0.1";
+            var monitoringService = new MonitoringServiceFacade(monitoringServiceUrl);
+            await monitoringService.MonitorUrl(
+                new UrlMonitoringObjectModel
                 {
-                    _consoleLog.WriteInfo(nameof(TryRegisterInMonitoringAsync), "", $"Found ip address: {ip.AddressFamily} - {ip.ToString()}");
-                    //if (ip.AddressFamily == AddressFamily.InterNetwork)
-                    //{
-                    //    return ip.ToString();
-                    //}
-                }
-            }
+                    Url = myMonitoringUrl,
+                    ServiceName = PlatformServices.Default.Application.ApplicationName,
+                });
         }
 
         private ILog CreateLogWithSlack(IServiceCollection services, IReloadingManager<AppSettings> settings)
