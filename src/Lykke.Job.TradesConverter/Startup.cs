@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.PlatformAbstractions;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Tables;
@@ -18,7 +17,6 @@ using Lykke.Logs.Slack;
 using Lykke.SettingsReader;
 using Lykke.SlackNotification.AzureQueue;
 using Lykke.MonitoringServiceApiCaller;
-using Lykke.MonitoringServiceApiCaller.Models;
 using Lykke.Job.TradesConverter.Core.Services;
 using Lykke.Job.TradesConverter.Modules;
 using Lykke.Job.TradesConverter.Settings;
@@ -122,7 +120,7 @@ namespace Lykke.Job.TradesConverter
                 await ApplicationContainer.Resolve<IStartupManager>().StartAsync();
                 await Log.WriteMonitorAsync("", "", "Started");
 
-                await TryRegisterInMonitoringAsync(Configuration, _monitoringServiceUrl, Log);
+                await AutoRegistrationInMonitoring.RegisterAsync(Configuration, _monitoringServiceUrl, Log);
             }
             catch (Exception ex)
             {
@@ -167,32 +165,6 @@ namespace Lykke.Job.TradesConverter
                     (Log as IDisposable)?.Dispose();
                 }
                 throw;
-            }
-        }
-
-        private async static Task TryRegisterInMonitoringAsync(IConfigurationRoot configuration, string monitoringServiceUrl, ILog log)
-        {
-            try
-            {
-                string envVariableName = "MyMonitoringUrl";
-                string myMonitoringUrl = configuration.GetValue<string>(envVariableName);
-                if (string.IsNullOrWhiteSpace(myMonitoringUrl))
-                {
-                    myMonitoringUrl = "0.0.0.0";
-                    log.WriteInfo("Auto-registration in monitoring", "", $"{envVariableName} environment variable is not found. Using {myMonitoringUrl} for monitoring registration");
-                }
-                var monitoringService = new MonitoringServiceFacade(monitoringServiceUrl);
-                await monitoringService.MonitorUrl(
-                    new UrlMonitoringObjectModel
-                    {
-                        Url = myMonitoringUrl,
-                        ServiceName = PlatformServices.Default.Application.ApplicationName,
-                    });
-                log.WriteInfo("Auto-registration in monitoring", "", $"Auto-registered in Monitoring on {myMonitoringUrl}");
-            }
-            catch (Exception ex)
-            {
-                log.WriteError("Auto-registration in monitoring", "", ex);
             }
         }
 
