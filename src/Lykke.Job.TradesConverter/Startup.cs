@@ -174,11 +174,12 @@ namespace Lykke.Job.TradesConverter
         {
             try
             {
-                string myMonitoringUrl = configuration.GetValue<string>("MyMonitoringUrl");
+                string envVariableName = "MyMonitoringUrl";
+                string myMonitoringUrl = configuration.GetValue<string>(envVariableName);
                 if (string.IsNullOrWhiteSpace(myMonitoringUrl))
                 {
-                    myMonitoringUrl = "127.0.0.1";
-                    log.WriteInfo("Auto-registration in monitoring", "", $"MyMonitoringUrl environment variable is not found. Using 127.0.0.1 for monitoring registration");
+                    myMonitoringUrl = "0.0.0.0";
+                    log.WriteInfo("Auto-registration in monitoring", "", $"{envVariableName} environment variable is not found. Using {myMonitoringUrl} for monitoring registration");
                 }
                 var monitoringService = new MonitoringServiceFacade(monitoringServiceUrl);
                 await monitoringService.MonitorUrl(
