@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net;
+using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -8,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using AzureStorage.Tables;
+using Common;
 using Common.Log;
 using Lykke.Common.ApiLibrary.Middleware;
 using Lykke.Common.ApiLibrary.Swagger;
@@ -116,6 +119,8 @@ namespace Lykke.Job.TradesConverter
 
                 await ApplicationContainer.Resolve<IStartupManager>().StartAsync();
                 await Log.WriteMonitorAsync("", "", "Started");
+
+                await TryRegisterInMonitoringAsync();
             }
             catch (Exception ex)
             {
@@ -163,6 +168,23 @@ namespace Lykke.Job.TradesConverter
                     (Log as IDisposable)?.Dispose();
                 }
                 throw;
+            }
+        }
+
+        private async Task TryRegisterInMonitoringAsync()
+        {
+            string myMonitoringUrl = Configuration.GetValue<string>("MyMonitoringUrl");
+            if (string.IsNullOrWhiteSpace(myMonitoringUrl))
+            {
+                var host = Dns.GetHostEntry(Dns.GetHostName());
+                foreach (var ip in host.AddressList)
+                {
+                    _consoleLog.WriteInfo(nameof(TryRegisterInMonitoringAsync), ip.ToJson(), "Found ip address");
+                    //if (ip.AddressFamily == AddressFamily.InterNetwork)
+                    //{
+                    //    return ip.ToString();
+                    //}
+                }
             }
         }
 
