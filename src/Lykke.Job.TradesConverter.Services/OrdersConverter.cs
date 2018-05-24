@@ -17,7 +17,7 @@ namespace Lykke.Job.TradesConverter.Services
     public class OrdersConverter : IOrdersConverter
     {
         private const int _maxRetryCount = 5;
-        private const int _serviceCallTimeout = 100000;
+        private const int _serviceCallTimeout = 5 * 60 * 1000; // 5 min
 
         private readonly IClientAccountClient _clientAccountClient;
         private readonly ILog _log;
