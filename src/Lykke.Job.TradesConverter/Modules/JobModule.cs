@@ -1,4 +1,5 @@
 ﻿using Autofac;
+using Common;
 using Common.Log;
 using Lykke.Common;
 using Lykke.Service.ClientAccount.Client;
@@ -38,10 +39,12 @@ namespace Lykke.Job.TradesConverter.Modules
                 .SingleInstance();
 
             builder.RegisterType<StartupManager>()
-                .As<IStartupManager>();
+                .As<IStartupManager>()
+                .SingleInstance();
 
             builder.RegisterType<ShutdownManager>()
-                .As<IShutdownManager>();
+                .As<IShutdownManager>()
+                .SingleInstance();
 
             builder.RegisterLykkeServiceClient(_settings.ClientAccountServiceClient.ServiceUrl);
 
@@ -58,16 +61,16 @@ namespace Lykke.Job.TradesConverter.Modules
         private void RegisterRabbitMqSubscribers(ContainerBuilder builder)
         {
             builder.RegisterType<MarketOrdersSubscriber>()
-                .As<IStartable>()
-                .AutoActivate()
+                .As<IStopable>()
                 .SingleInstance()
+                .AutoActivate()
                 .WithParameter("connectionString", _settings.TradesConverterJob.Rabbit.InputConnectionString)
                 .WithParameter("exchangeName", _settings.TradesConverterJob.MarketOrdersTradesExchangeName);
 
             builder.RegisterType<LimitOrdersSubscriber>()
-                .As<IStartable>()
-                .AutoActivate()
+                .As<IStopable>()
                 .SingleInstance()
+                .AutoActivate()
                 .WithParameter("connectionString", _settings.TradesConverterJob.Rabbit.InputConnectionString)
                 .WithParameter("exchangeName", _settings.TradesConverterJob.LimitOrdersTradesExchangeName);
         }
@@ -77,7 +80,7 @@ namespace Lykke.Job.TradesConverter.Modules
             builder.RegisterType<TradesPublisher>()
                 .As<ITradeLogPublisher>()
                 .As<IStartable>()
-                .AutoActivate()
+                .As<IStopable>()
                 .SingleInstance()
                 .WithParameter(TypedParameter.From(_settings.TradesConverterJob.Rabbit.OutputConnectionString));
         }

@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Autofac;
 using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.Services
@@ -7,11 +9,21 @@ namespace Lykke.Job.TradesConverter.Services
     [UsedImplicitly]
     public class StartupManager : IStartupManager
     {
-        public async Task StartAsync()
-        {
-            // TODO: Implement your startup logic here. Good idea is to log every step
+        private readonly List<IStartable> _startables = new List<IStartable>();
 
-            await Task.CompletedTask;
+        public void Register(IStartable startable)
+        {
+            _startables.Add(startable);
+        }
+
+        public Task StartAsync()
+        {
+            foreach (var item in _startables)
+            {
+                item.Start();
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

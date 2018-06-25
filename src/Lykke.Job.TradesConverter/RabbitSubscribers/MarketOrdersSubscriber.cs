@@ -25,6 +25,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         public MarketOrdersSubscriber(
             ITradeLogPublisher publisher,
             IOrdersConverter tradesConverter,
+            IStartupManager startupManager,
             ILog log,
             IConsole console,
             string connectionString,
@@ -36,6 +37,8 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
             _console = console;
             _connectionString = connectionString;
             _exchangeName = exchangeName;
+
+            startupManager.Register(this);
         }
 
         public void Start()
