@@ -22,8 +22,9 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         private readonly IConsole _console;
         private readonly string _connectionString;
         private readonly string _exchangeName;
-        private RabbitMqSubscriber<LimitOrders> _subscriber;
         private readonly TimeSpan _processTimeThreshold = TimeSpan.FromMinutes(1);
+
+        private RabbitMqSubscriber<LimitOrders> _subscriber;
 
         public LimitOrdersSubscriber(
             ITradeLogPublisher publisher,
@@ -81,17 +82,7 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 }
 
                 if (allTrades.Count > 0)
-                {
-                    var publishStart = DateTime.UtcNow;
                     await _publisher.PublishAsync(allTrades);
-                    var publishTime = DateTime.UtcNow.Subtract(publishStart); 
-                    if (publishTime > _processTimeThreshold)
-                    {
-                        await _log.WriteWarningAsync(nameof(LimitOrdersSubscriber), nameof(ProcessMessageAsync), $"Long publish ({publishTime}): {allTrades.ToJson()}");
-                        _publisher.Stop();
-                        _publisher.Start();
-                    }
-                }
 
                 var elapsed = DateTime.UtcNow.Subtract(start); 
                 if (elapsed > _processTimeThreshold)

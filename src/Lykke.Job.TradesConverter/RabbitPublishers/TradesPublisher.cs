@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
+using Common;
 using Common.Log;
 using Lykke.Job.TradesConverter.Contract;
 using Lykke.Job.TradesConverter.Core.Services;
@@ -15,6 +18,9 @@ namespace Lykke.Job.TradesConverter.RabbitPublishers
         private readonly ILog _log;
         private readonly IConsole _console;
         private readonly string _connectionString;
+        private readonly TimeSpan _timeThreshold = TimeSpan.FromMinutes(1);
+        private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
+
         private RabbitMqPublisher<List<TradeLogItem>> _publisher;
 
         public TradesPublisher(
@@ -54,7 +60,23 @@ namespace Lykke.Job.TradesConverter.RabbitPublishers
 
         public async Task PublishAsync(List<TradeLogItem> message)
         {
-            await _publisher.ProduceAsync(message);
+            await _lock.WaitAsync();
+            try
+            {
+                var publishStart = DateTime.UtcNow;
+                await _publisher.ProduceAsync(message);
+                var publishTime = DateTime.UtcNow.Subtract(publishStart);
+                if (publishTime > _timeThreshold)
+                {
+                    await _log.WriteWarningAsync(nameof(TradesPublisher), nameof(PublishAsync), $"Long publish ({publishTime}): {message.ToJson()}");
+                    _publisher.Stop();
+                    _publisher.Start();
+                }
+            }
+            finally
+            {
+                _lock.Release();
+            }
         }
     }
 }
