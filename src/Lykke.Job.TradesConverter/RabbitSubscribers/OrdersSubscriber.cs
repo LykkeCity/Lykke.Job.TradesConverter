@@ -1,44 +1,39 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Autofac;
-using JetBrains.Annotations;
 using Common;
 using Common.Log;
+using JetBrains.Annotations;
+using Lykke.Job.TradesConverter.Core.Services;
+using Lykke.MatchingEngine.Connector.Models.Events;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
-using Lykke.Job.TradesConverter.Core.IncomingMessages;
-using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.RabbitSubscribers
 {
     [UsedImplicitly]
-    public class MarketOrdersSubscriber : IStartable, IStopable
+    public class OrdersSubscriber : IStartStop
     {
         private readonly ITradeLogPublisher _publisher;
         private readonly IOrdersConverter _tradesConverter;
         private readonly ILog _log;
-        private readonly IConsole _console;
         private readonly string _connectionString;
         private readonly string _exchangeName;
-        private RabbitMqSubscriber<MarketOrderWithTrades> _subscriber;
+        private readonly TimeSpan _processTimeThreshold = TimeSpan.FromMinutes(1);
 
-        public MarketOrdersSubscriber(
+        private RabbitMqSubscriber<ExecutionEvent> _subscriber;
+
+        public OrdersSubscriber(
             ITradeLogPublisher publisher,
             IOrdersConverter tradesConverter,
-            IStartupManager startupManager,
             ILog log,
-            IConsole console,
             string connectionString,
             string exchangeName)
         {
             _publisher = publisher;
             _tradesConverter = tradesConverter;
             _log = log;
-            _console = console;
             _connectionString = connectionString;
             _exchangeName = exchangeName;
-
-            startupManager.Register(this);
         }
 
         public void Start()
@@ -47,35 +42,40 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 .CreateForSubscriber(_connectionString, _exchangeName, "tradesconverter")
                 .MakeDurable();
 
-            _subscriber = new RabbitMqSubscriber<MarketOrderWithTrades>(
+            _subscriber = new RabbitMqSubscriber<ExecutionEvent>(
                     settings,
                     new ResilientErrorHandlingStrategy(_log, settings,
                         retryTimeout: TimeSpan.FromSeconds(10),
                         next: new DeadQueueErrorHandlingStrategy(_log, settings)))
-                .SetMessageDeserializer(new JsonMessageDeserializer<MarketOrderWithTrades>())
+                .SetMessageDeserializer(new ProtobufMessageDeserializer<ExecutionEvent>())
                 .SetMessageReadStrategy(new MessageReadQueueStrategy())
                 .Subscribe(ProcessMessageAsync)
                 .CreateDefaultBinding()
                 .SetLogger(_log)
-                .SetConsole(_console)
                 .Start();
         }
 
-        private async Task ProcessMessageAsync(MarketOrderWithTrades arg)
+        private async Task ProcessMessageAsync(ExecutionEvent arg)
         {
             try
             {
                 var start = DateTime.UtcNow;
-                var trades = await _tradesConverter.ConvertAsync(arg);
-                if (trades.Count > 0)
-                    await _publisher.PublishAsync(trades);
-                var elapsed = DateTime.UtcNow.Subtract(start); 
-                if (elapsed > TimeSpan.FromMinutes(2))
-                    await _log.WriteWarningAsync(nameof(MarketOrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing ({elapsed}): {arg.ToJson()}");
+                var convertStart = DateTime.UtcNow;
+                var allTrades = await _tradesConverter.ConvertAsync(arg);
+                var convertTime = DateTime.UtcNow.Subtract(convertStart);
+                if (convertTime > _processTimeThreshold)
+                    _log.WriteWarning(nameof(OrdersSubscriber), nameof(ProcessMessageAsync), $"Long convert ({convertTime}): from {arg.ToJson()} to {allTrades.ToJson()}");
+
+                if (allTrades.Count > 0)
+                    await _publisher.PublishAsync(allTrades);
+
+                var elapsed = DateTime.UtcNow.Subtract(start);
+                if (elapsed > _processTimeThreshold)
+                    _log.WriteWarning(nameof(OrdersSubscriber), nameof(ProcessMessageAsync), $"Long processing ({elapsed}): {arg.ToJson()}");
             }
             catch (Exception ex)
             {
-                await _log.WriteErrorAsync("MarketOrdersSubscriber.ProcessMessageAsync", arg.ToJson(), ex);
+                _log.WriteError("OrdersSubscriber.ProcessMessageAsync", arg.ToJson(), ex);
                 throw;
             }
         }

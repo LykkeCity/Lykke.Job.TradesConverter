@@ -2,12 +2,12 @@
 using Common;
 using Common.Log;
 using Lykke.Common;
-using Lykke.Service.ClientAccount.Client;
 using Lykke.Job.TradesConverter.Core.Services;
-using Lykke.Job.TradesConverter.Services;
 using Lykke.Job.TradesConverter.RabbitSubscribers;
 using Lykke.Job.TradesConverter.RabbitPublishers;
+using Lykke.Job.TradesConverter.Services;
 using Lykke.Job.TradesConverter.Settings;
+using Lykke.Service.ClientAccount.Client;
 
 namespace Lykke.Job.TradesConverter.Modules
 {
@@ -15,23 +15,17 @@ namespace Lykke.Job.TradesConverter.Modules
     {
         private readonly AppSettings _settings;
         private readonly ILog _log;
-        private readonly IConsole _console;
 
-        public JobModule(AppSettings settings, ILog log, IConsole console)
+        public JobModule(AppSettings settings, ILog log)
         {
             _settings = settings;
             _log = log;
-            _console = console;
         }
 
         protected override void Load(ContainerBuilder builder)
         {
             builder.RegisterInstance(_log)
                 .As<ILog>()
-                .SingleInstance();
-
-            builder.RegisterInstance(_console)
-                .As<IConsole>()
                 .SingleInstance();
 
             builder.RegisterType<HealthService>()
@@ -44,6 +38,7 @@ namespace Lykke.Job.TradesConverter.Modules
 
             builder.RegisterType<ShutdownManager>()
                 .As<IShutdownManager>()
+                .AutoActivate()
                 .SingleInstance();
 
             builder.RegisterLykkeServiceClient(_settings.ClientAccountServiceClient.ServiceUrl);
@@ -60,19 +55,12 @@ namespace Lykke.Job.TradesConverter.Modules
 
         private void RegisterRabbitMqSubscribers(ContainerBuilder builder)
         {
-            builder.RegisterType<MarketOrdersSubscriber>()
-                .As<IStopable>()
+            builder.RegisterType<OrdersSubscriber>()
+                .As<IStartStop>()
                 .SingleInstance()
                 .AutoActivate()
                 .WithParameter("connectionString", _settings.TradesConverterJob.Rabbit.InputConnectionString)
-                .WithParameter("exchangeName", _settings.TradesConverterJob.MarketOrdersTradesExchangeName);
-
-            builder.RegisterType<LimitOrdersSubscriber>()
-                .As<IStopable>()
-                .SingleInstance()
-                .AutoActivate()
-                .WithParameter("connectionString", _settings.TradesConverterJob.Rabbit.InputConnectionString)
-                .WithParameter("exchangeName", _settings.TradesConverterJob.LimitOrdersTradesExchangeName);
+                .WithParameter("exchangeName", _settings.TradesConverterJob.EventsExchangeName);
         }
 
         private void RegisterRabbitMqPublishers(ContainerBuilder builder)

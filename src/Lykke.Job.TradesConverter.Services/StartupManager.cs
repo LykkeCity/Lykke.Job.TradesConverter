@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Autofac;
+using JetBrains.Annotations;
 using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.Services
@@ -11,9 +11,9 @@ namespace Lykke.Job.TradesConverter.Services
     {
         private readonly List<IStartable> _startables = new List<IStartable>();
 
-        public void Register(IStartable startable)
+        public StartupManager(IEnumerable<IStartStop> startables)
         {
-            _startables.Add(startable);
+            _startables.AddRange(startables);
         }
 
         public Task StartAsync()

@@ -12,30 +12,46 @@ namespace Lykke.Job.TradesConverter.Services
     public class ShutdownManager : IShutdownManager
     {
         private readonly ILog _log;
-        private readonly IEnumerable<IStopable> _items;
+        private readonly List<IStopable> _items = new List<IStopable>();
+        private readonly List<IStartStop> _stopables = new List<IStartStop>();
 
-        public ShutdownManager(ILog log, IEnumerable<IStopable> items)
+        public ShutdownManager(
+            ILog log,
+            IEnumerable<IStopable> items,
+            IEnumerable<IStartStop> stopables)
         {
             _log = log;
-            _items = items;
+            _items.AddRange(items);
+            _stopables.AddRange(stopables);
         }
 
-        public async Task StopAsync()
+        public Task StopAsync()
         {
-            // TODO: Implement your shutdown logic here. Good idea is to log every step
-            foreach (var item in _items)
+            Parallel.ForEach(_stopables, i =>
             {
                 try
                 {
-                    item.Stop();
+                    i.Stop();
                 }
                 catch (Exception ex)
                 {
-                    _log.WriteWarning(nameof(StopAsync), null, $"Unable to stop {item.GetType().Name}", ex);
+                    _log.WriteWarning(nameof(StopAsync), null, $"Unable to stop {i.GetType().Name}", ex);
                 }
-            }
+            });
 
-            await Task.CompletedTask;
+            Parallel.ForEach(_items, i =>
+            {
+                try
+                {
+                    i.Stop();
+                }
+                catch (Exception ex)
+                {
+                    _log.WriteWarning(nameof(StopAsync), null, $"Unable to stop {i.GetType().Name}", ex);
+                }
+            });
+
+            return Task.CompletedTask;
         }
     }
 }

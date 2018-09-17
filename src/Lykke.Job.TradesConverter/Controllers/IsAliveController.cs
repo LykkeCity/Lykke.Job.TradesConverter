@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.PlatformAbstractions;
-using Swashbuckle.AspNetCore.SwaggerGen;
+using Lykke.Common;
 using Lykke.Common.Api.Contract.Responses;
 using Lykke.Job.TradesConverter.Core.Services;
+using Microsoft.AspNetCore.Mvc;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Lykke.Job.TradesConverter.Controllers
 {
@@ -23,7 +23,6 @@ namespace Lykke.Job.TradesConverter.Controllers
         /// <summary>
         /// Checks service is alive
         /// </summary>
-        /// <returns></returns>
         [HttpGet]
         [SwaggerOperation("IsAlive")]
         [ProducesResponseType(typeof(IsAliveResponse), (int)HttpStatusCode.OK)]
@@ -42,8 +41,8 @@ namespace Lykke.Job.TradesConverter.Controllers
             // NOTE: Feel free to extend IsAliveResponse, to display job-specific indicators
             return Ok(new IsAliveResponse
             {
-                Name = PlatformServices.Default.Application.ApplicationName,
-                Version = PlatformServices.Default.Application.ApplicationVersion,
+                Name = AppEnvironment.Name,
+                Version = AppEnvironment.Version,
                 Env = Environment.GetEnvironmentVariable("ENV_INFO"),
 #if DEBUG
                 IsDebug = true,

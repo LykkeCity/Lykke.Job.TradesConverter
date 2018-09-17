@@ -1,15 +1,16 @@
 ﻿using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Common.Log;
+using JetBrains.Annotations;
+using Lykke.Job.TradesConverter.Contract;
+using Lykke.Job.TradesConverter.Core.Services;
+using Lykke.MatchingEngine.Connector.Models.Events;
+using Lykke.MatchingEngine.Connector.Models.Events.Common;
 using Lykke.Service.ClientAccount.Client;
 using Lykke.Service.ClientAccount.Client.AutorestClient.Models;
-using Lykke.Job.TradesConverter.Contract;
-using Lykke.Job.TradesConverter.Core.IncomingMessages;
-using Lykke.Job.TradesConverter.Core.Services;
 
 namespace Lykke.Job.TradesConverter.Services
 {
@@ -31,55 +32,39 @@ namespace Lykke.Job.TradesConverter.Services
             _log = log;
         }
 
-        public async Task<List<TradeLogItem>> ConvertAsync(LimitOrderWithTrades model)
+        public async Task<List<TradeLogItem>> ConvertAsync(ExecutionEvent model)
         {
             var result = new List<TradeLogItem>();
-            if (model.Trades == null || model.Trades.Count == 0)
-                return result;
 
-            foreach (var trade in model.Trades)
+            foreach (var order in model.Orders)
             {
-                if (!_walletInfoCache.ContainsKey(trade.ClientId))
-                {
-                    (string userId, string hashedUserId, string walletId, string walletType) = await GetWalletInfoAsync(trade.ClientId);
-                    _walletInfoCache.TryAdd(trade.ClientId, (userId, hashedUserId, walletId, walletType));
-                }
-                var userInfo = _walletInfoCache[trade.ClientId];
-                var trades = FromModel(
-                    trade,
-                    model.Order,
-                    userInfo.Item1,
-                    userInfo.Item2,
-                    userInfo.Item3,
-                    userInfo.Item4);
-                result.AddRange(trades);
-            }
-            return result;
-        }
+                if (order.Trades == null
+                    || order.Trades.Count == 0
+                    || order.OrderType != OrderType.Limit && order.OrderType != OrderType.Market)
+                    continue;
 
-        public async Task<List<TradeLogItem>> ConvertAsync(MarketOrderWithTrades model)
-        {
-            var result = new List<TradeLogItem>();
-            if (model.Trades == null || model.Trades.Count == 0)
-                return result;
-
-            foreach (var trade in model.Trades)
-            {
-                if (!_walletInfoCache.ContainsKey(trade.MarketClientId))
+                if (!_walletInfoCache.ContainsKey(order.WalletId))
                 {
-                    (string userId, string hashedUserId, string walletId, string walletType) = await GetWalletInfoAsync(trade.MarketClientId);
-                    _walletInfoCache.TryAdd(trade.MarketClientId, (userId, hashedUserId, walletId, walletType));
+                    var (userId, hashedUserId, walletId, walletType) = await GetWalletInfoAsync(order.WalletId);
+                    _walletInfoCache.TryAdd(order.WalletId, (userId, hashedUserId, walletId, walletType));
                 }
-                var userInfo = _walletInfoCache[trade.MarketClientId];
-                var trades = FromModel(
-                    trade,
-                    model.Order,
-                    userInfo.Item1,
-                    userInfo.Item2,
-                    userInfo.Item3,
-                    userInfo.Item4);
-                result.AddRange(trades);
+
+                var userInfo = _walletInfoCache[order.WalletId];
+
+                foreach (var trade in order.Trades)
+                {
+                    var trades = FromModel(
+                        trade,
+                        order,
+                        userInfo.Item1,
+                        userInfo.Item2,
+                        userInfo.Item3,
+                        userInfo.Item4,
+                        model.Header.Timestamp);
+                    result.AddRange(trades);
+                }
             }
+
             return result;
         }
 
@@ -89,87 +74,24 @@ namespace Lykke.Job.TradesConverter.Services
         }
 
         private List<TradeLogItem> FromModel(
-            LimitTradeInfo model,
-            LimitOrder order,
+            Trade model,
+            Order order,
             string userId,
             string hashedUserId,
             string walletId,
-            string walletType)
-        {
-            var result = new List<TradeLogItem>(4);
-            string orderId = order.ExternalId;
-            string oppositeOrderId = model.OppositeOrderExternalId ?? model.OppositeOrderId;
-            string tradeId = GetTradeId(orderId, oppositeOrderId);
-            var direction = ChooseDirection(
-                order.AssetPairId,
-                model.Asset,
-                order.Straight,
-                order.Volume);
-            string orderType = "Limit";
-            result.Add(
-                new TradeLogItem
-                {
-                    TradeLegId = model.TradeId,
-                    TradeId = tradeId,
-                    UserId = userId,
-                    HashedUserId = hashedUserId,
-                    WalletId = walletId,
-                    WalletType = walletType,
-                    OrderId = orderId,
-                    OrderType = orderType,
-                    Direction = direction,
-                    Asset = model.Asset,
-                    Volume = (decimal)Math.Abs(model.Volume),
-                    Price = (decimal)model.Price,
-                    DateTime = model.Timestamp,
-                    OppositeOrderId = oppositeOrderId,
-                    OppositeAsset = model.OppositeAsset,
-                    OppositeVolume = (decimal)Math.Abs(model.OppositeVolume),
-                    Fee = ConvertFee(model.Fees, model.Asset),
-                });
-            result.Add(
-                new TradeLogItem
-                {
-                    TradeLegId = model.TradeId,
-                    TradeId = tradeId,
-                    UserId = userId,
-                    HashedUserId = hashedUserId,
-                    WalletId = walletId,
-                    WalletType = walletType,
-                    OrderId = orderId,
-                    OrderType = orderType,
-                    Direction = direction == Direction.Sell ? Direction.Buy : Direction.Sell,
-                    Asset = model.OppositeAsset,
-                    Volume = (decimal)Math.Abs(model.OppositeVolume),
-                    Price = (decimal)model.Price,
-                    DateTime = model.Timestamp,
-                    OppositeOrderId = oppositeOrderId,
-                    OppositeAsset = model.Asset,
-                    OppositeVolume = (decimal)Math.Abs(model.Volume),
-                    Fee = ConvertFee(model.Fees, model.OppositeAsset),
-                });
-
-            return result;
-        }
-
-        private List<TradeLogItem> FromModel(
-            TradeInfo model,
-            MarketOrder order,
-            string userId,
-            string hashedUserId,
-            string walletId,
-            string walletType)
+            string walletType,
+            DateTime timestamp)
         {
             var result = new List<TradeLogItem>(2);
             string orderId = order.ExternalId;
-            string oppositeOrderId = model.LimitOrderExternalId ?? model.LimitOrderId;
+            string oppositeOrderId = model.OppositeExternalOrderId ?? model.OppositeOrderId;
             string tradeId = GetTradeId(orderId, oppositeOrderId);
-            var direction = ChooseDirection(
+            var baseDirection = ChooseDirection(
                 order.AssetPairId,
-                model.MarketAsset,
+                model.BaseAssetId,
                 order.Straight,
-                order.Volume);
-            string orderType = "Market";
+                double.Parse(order.Volume));
+            var orderType = order.OrderType == OrderType.Limit ? "Limit" : "Market";
             result.Add(
                 new TradeLogItem
                 {
@@ -181,15 +103,19 @@ namespace Lykke.Job.TradesConverter.Services
                     WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
-                    Direction = direction,
-                    Asset = model.MarketAsset,
-                    Volume = (decimal)Math.Abs(model.MarketVolume),
-                    Price = (decimal)model.Price,
+                    Direction = baseDirection,
+                    Asset = model.BaseAssetId,
+                    Volume = (decimal)Math.Abs(double.Parse(model.BaseVolume)),
+                    Price = (decimal)double.Parse(model.Price),
                     DateTime = model.Timestamp,
                     OppositeOrderId = oppositeOrderId,
-                    OppositeAsset = model.LimitAsset,
-                    OppositeVolume = (decimal)Math.Abs(model.LimitVolume),
-                    Fee = ConvertFee(model.Fees, model.MarketAsset),
+                    OppositeAsset = model.QuotingAssetId,
+                    OppositeVolume = (decimal)Math.Abs(double.Parse(model.QuotingVolume)),
+                    Fee = ConvertFee(
+                        order.Fees,
+                        model.Fees,
+                        model.BaseAssetId,
+                        timestamp),
                 });
             result.Add(
                 new TradeLogItem
@@ -202,15 +128,19 @@ namespace Lykke.Job.TradesConverter.Services
                     WalletType = walletType,
                     OrderId = orderId,
                     OrderType = orderType,
-                    Direction = direction == Direction.Sell ? Direction.Buy : Direction.Sell,
-                    Asset = model.LimitAsset,
-                    Volume = (decimal)Math.Abs(model.LimitVolume),
-                    Price = (decimal)model.Price,
+                    Direction = baseDirection == Direction.Sell ? Direction.Buy : Direction.Sell,
+                    Asset = model.QuotingAssetId,
+                    Volume = (decimal)Math.Abs(double.Parse(model.QuotingVolume)),
+                    Price = (decimal)double.Parse(model.Price),
                     DateTime = model.Timestamp,
                     OppositeOrderId = oppositeOrderId,
-                    OppositeAsset = model.MarketAsset,
-                    OppositeVolume = (decimal)Math.Abs(model.MarketVolume),
-                    Fee = ConvertFee(model.Fees, model.LimitAsset),
+                    OppositeAsset = model.BaseAssetId,
+                    OppositeVolume = (decimal)Math.Abs(double.Parse(model.BaseVolume)),
+                    Fee = ConvertFee(
+                        order.Fees,
+                        model.Fees,
+                        model.QuotingAssetId,
+                        timestamp),
                 });
 
             return result;
@@ -235,14 +165,14 @@ namespace Lykke.Job.TradesConverter.Services
                     var start = DateTime.UtcNow;
                     var wallet = await TimeoutAfter(_clientAccountClient.GetWalletAsync(clientId), _serviceCallTimeout);
                     if (DateTime.UtcNow - start > _clientAccountCallThreshold)
-                        await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetWalletAsync with id = {clientId}");
+                        _log.WriteWarning(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetWalletAsync with id = {clientId}");
                     if (wallet != null)
                         return (wallet.ClientId, ClientIdHashHelper.GetClientIdHash(wallet.ClientId), clientId, wallet.Type);
 
                     start = DateTime.UtcNow;
                     var wallets = await TimeoutAfter(_clientAccountClient.GetClientWalletsByTypeAsync(clientId, WalletType.Trading), _serviceCallTimeout);
                     if (DateTime.UtcNow - start > _clientAccountCallThreshold)
-                        await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetClientWalletsByTypeAsync with id = {clientId}");
+                        _log.WriteWarning(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Long processing of GetClientWalletsByTypeAsync with id = {clientId}");
                     if (wallets == null || !wallets.Any())
                         return (clientId, clientIdHash, clientId, "N/A");
 
@@ -251,12 +181,12 @@ namespace Lykke.Job.TradesConverter.Services
                 }
                 catch (Exception ex)
                 {
-                    await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), ex.ToString());
+                    _log.WriteWarning(nameof(OrdersConverter), nameof(GetWalletInfoAsync), ex.ToString());
                 }
                 ++retryCount;
             } while (retryCount <= _maxRetryCount);
 
-            await _log.WriteWarningAsync(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Couldn't get wallet from ClientAccount service for {clientId}");
+            _log.WriteWarning(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Couldn't get wallet from ClientAccount service for {clientId}");
 
             return (clientId, clientIdHash, clientId, "N/A");
         }
@@ -273,28 +203,36 @@ namespace Lykke.Job.TradesConverter.Services
             return isBuy ? Direction.Buy : Direction.Sell;
         }
 
-        private static TradeLogItemFee ConvertFee(List<Fee> fees, string assetId)
+        private static TradeLogItemFee ConvertFee(
+            List<FeeInstruction> feeInstructions,
+            List<FeeTransfer> feeTransfers,
+            string assetId,
+            DateTime timestamp)
         {
-            if (fees == null)
+            var transfer = feeTransfers?.FirstOrDefault(f => f.AssetId == assetId);
+            if (transfer == null)
                 return null;
-            return fees
-                .Where(f => f != null && f.Transfer != null && f.Transfer.Asset == assetId)
-                .Select(f =>
-                    new TradeLogItemFee
-                    {
-                        FromClientId = f.Transfer.FromClientId,
-                        ToClientId = f.Transfer.ToClientId,
-                        DateTime = f.Transfer.DateTime,
-                        Volume = f.Transfer.Volume,
-                        Asset = f.Transfer.Asset,
-                        Type = f.Instruction.Type,
-                        SizeType = f.Instruction.SizeType,
-                        Size = f.Instruction.Size,
-                        MakerSizeType = f.Instruction.MakerSizeType,
-                        MakerSize = f.Instruction.MakerSize,
-                        MakerFeeModificator = f.Instruction.MakerFeeModificator,
-                    })
-                .FirstOrDefault();
+
+            var feeInstruction = feeInstructions.First(f => f.Index == transfer.Index);
+
+            var result = new TradeLogItemFee
+                {
+                    FromClientId = transfer.SourceWalletId,
+                    ToClientId = transfer.TargetWalletId,
+                    DateTime = timestamp,
+                    Volume = double.Parse(transfer.Volume),
+                    Asset = assetId,
+                    Type = feeInstruction.Type.ToString(),
+                    SizeType = feeInstruction.SizeType == FeeInstructionSizeType.Absolute ? "ABSOLUTE" : "PERCENTAGE",
+                    MakerSizeType = feeInstruction.MakerSizeType.ToString(),
+                };
+            if (!string.IsNullOrWhiteSpace(feeInstruction.MakerFeeModificator))
+                result.MakerFeeModificator = double.Parse(feeInstruction.MakerFeeModificator);
+            if (!string.IsNullOrWhiteSpace(feeInstruction.MakerSize))
+                result.MakerSize = double.Parse(feeInstruction.MakerSize);
+            if (!string.IsNullOrWhiteSpace(feeInstruction.Size))
+                result.Size = double.Parse(feeInstruction.Size);
+            return result;
         }
     }
 }

@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using JetBrains.Annotations;
 using Common;
 using Common.Log;
+using JetBrains.Annotations;
 using Lykke.Job.TradesConverter.Contract;
 using Lykke.Job.TradesConverter.Core.Services;
 using Lykke.RabbitMqBroker.Publisher;
@@ -16,20 +16,15 @@ namespace Lykke.Job.TradesConverter.RabbitPublishers
     public class TradesPublisher : ITradeLogPublisher
     {
         private readonly ILog _log;
-        private readonly IConsole _console;
         private readonly string _connectionString;
         private readonly TimeSpan _timeThreshold = TimeSpan.FromMinutes(1);
         private readonly SemaphoreSlim _lock = new SemaphoreSlim(1, 1);
 
         private RabbitMqPublisher<List<TradeLogItem>> _publisher;
 
-        public TradesPublisher(
-            ILog log,
-            IConsole console,
-            string connectionString)
+        public TradesPublisher(ILog log, string connectionString)
         {
             _log = log;
-            _console = console;
             _connectionString = connectionString;
         }
 
@@ -44,7 +39,6 @@ namespace Lykke.Job.TradesConverter.RabbitPublishers
                 .SetPublishStrategy(new DefaultFanoutPublishStrategy(settings))
                 .PublishSynchronously()
                 .SetLogger(_log)
-                .SetConsole(_console)
                 .Start();
         }
 
@@ -68,7 +62,7 @@ namespace Lykke.Job.TradesConverter.RabbitPublishers
                 var publishTime = DateTime.UtcNow.Subtract(publishStart);
                 if (publishTime > _timeThreshold)
                 {
-                    await _log.WriteWarningAsync(nameof(TradesPublisher), nameof(PublishAsync), $"Long publish ({publishTime}): {message.ToJson()}");
+                    _log.WriteWarning(nameof(TradesPublisher), nameof(PublishAsync), $"Long publish ({publishTime}): {message.ToJson()}");
                     _publisher.Stop();
                     _publisher.Start();
                 }

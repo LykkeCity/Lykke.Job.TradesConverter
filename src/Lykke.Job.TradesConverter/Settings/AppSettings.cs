@@ -58,8 +58,6 @@ namespace Lykke.Job.TradesConverter.Settings
 
         public RabbitMqSettings Rabbit { get; set; }
 
-        public string MarketOrdersTradesExchangeName { get; set; }
-
-        public string LimitOrdersTradesExchangeName { get; set; }
+        public string EventsExchangeName { get; set; }
     }
 }
