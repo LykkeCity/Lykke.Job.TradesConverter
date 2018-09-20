@@ -5,6 +5,7 @@ using Common.Log;
 using JetBrains.Annotations;
 using Lykke.Job.TradesConverter.Core.Services;
 using Lykke.MatchingEngine.Connector.Models.Events;
+using Lykke.MatchingEngine.Connector.Models.Events.Common;
 using Lykke.RabbitMqBroker;
 using Lykke.RabbitMqBroker.Subscriber;
 
@@ -39,8 +40,9 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
         public void Start()
         {
             var settings = RabbitMqSubscriptionSettings
-                .CreateForSubscriber(_connectionString, _exchangeName, "tradesconverter")
-                .MakeDurable();
+                .ForSubscriber(_connectionString, _exchangeName, "tradesconverter")
+                .MakeDurable()
+                .UseRoutingKey(((int)MessageType.Order).ToString());
 
             _subscriber = new RabbitMqSubscriber<ExecutionEvent>(
                     settings,
