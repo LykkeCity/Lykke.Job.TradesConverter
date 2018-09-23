@@ -198,7 +198,7 @@ namespace Lykke.Job.TradesConverter.Services
             double orderVolume)
         {
             bool isBuy = !(straight ^ (orderVolume >= 0));
-            if (assetPair.EndsWith(asset))
+            if (!assetPair.EndsWith(asset))
                 isBuy = !isBuy;
             return isBuy ? Direction.Buy : Direction.Sell;
         }

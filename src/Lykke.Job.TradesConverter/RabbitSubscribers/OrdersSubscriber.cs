@@ -53,8 +53,10 @@ namespace Lykke.Job.TradesConverter.RabbitSubscribers
                 .SetMessageReadStrategy(new MessageReadQueueStrategy())
                 .Subscribe(ProcessMessageAsync)
                 .CreateDefaultBinding()
-                .SetLogger(_log)
-                .Start();
+                .SetLogger(_log);
+#if !DEBUG
+            _subscriber.Start();
+#endif
         }
 
         private async Task ProcessMessageAsync(ExecutionEvent arg)
