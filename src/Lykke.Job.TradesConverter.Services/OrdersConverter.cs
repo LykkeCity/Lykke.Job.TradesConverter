@@ -89,6 +89,7 @@ namespace Lykke.Job.TradesConverter.Services
             var baseDirection = ChooseDirection(
                 order.AssetPairId,
                 model.BaseAssetId,
+                model.QuotingAssetId,
                 order.Straight,
                 double.Parse(order.Volume));
             var orderType = order.OrderType == OrderType.Limit ? "Limit" : "Market";
@@ -193,13 +194,22 @@ namespace Lykke.Job.TradesConverter.Services
 
         private static Direction ChooseDirection(
             string assetPair,
-            string asset,
+            string assetId,
+            string otherAssetId,
             bool straight,
             double orderVolume)
         {
             bool isBuy = !(straight ^ (orderVolume >= 0));
-            if (!assetPair.EndsWith(asset))
-                isBuy = !isBuy;
+            if (assetId.Length < 20) // not GUID
+            {
+                if (assetPair.EndsWith(assetId))
+                    isBuy = !isBuy;
+            }
+            else if (otherAssetId.Length < 20) // not GUID
+            {
+                if (!assetPair.EndsWith(otherAssetId))
+                    isBuy = !isBuy;
+            }
             return isBuy ? Direction.Buy : Direction.Sell;
         }
 
