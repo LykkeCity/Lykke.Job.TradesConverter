@@ -192,7 +192,7 @@ namespace Lykke.Job.TradesConverter.Services
             return (clientId, clientIdHash, clientId, "N/A");
         }
 
-        private static Direction ChooseDirection(
+        private Direction ChooseDirection(
             string assetPair,
             string assetId,
             string otherAssetId,
@@ -210,6 +210,10 @@ namespace Lykke.Job.TradesConverter.Services
                 if (!assetPair.EndsWith(otherAssetId))
                     isBuy = !isBuy;
             }
+
+            if (orderVolume < 0)
+                _log.WriteInfoAsync(nameof(ChooseDirection), $"{assetPair}_{assetId}_{otherAssetId}_{straight}", isBuy.ToString());
+
             return isBuy ? Direction.Buy : Direction.Sell;
         }
 
