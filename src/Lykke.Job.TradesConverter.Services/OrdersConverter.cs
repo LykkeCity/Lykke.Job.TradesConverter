@@ -86,12 +86,8 @@ namespace Lykke.Job.TradesConverter.Services
             string orderId = order.ExternalId;
             string oppositeOrderId = model.OppositeExternalOrderId ?? model.OppositeOrderId;
             string tradeId = GetTradeId(orderId, oppositeOrderId);
-            var baseDirection = ChooseDirection(
-                order.AssetPairId,
-                model.BaseAssetId,
-                model.QuotingAssetId,
-                order.Straight,
-                double.Parse(order.Volume));
+            double baseVolume = double.Parse(model.BaseVolume);
+            var baseDirection = baseVolume >= 0 ? Direction.Buy : Direction.Sell;
             var orderType = order.OrderType == OrderType.Limit ? "Limit" : "Market";
             result.Add(
                 new TradeLogItem
@@ -106,7 +102,7 @@ namespace Lykke.Job.TradesConverter.Services
                     OrderType = orderType,
                     Direction = baseDirection,
                     Asset = model.BaseAssetId,
-                    Volume = (decimal)Math.Abs(double.Parse(model.BaseVolume)),
+                    Volume = (decimal)Math.Abs(baseVolume),
                     Price = (decimal)double.Parse(model.Price),
                     DateTime = model.Timestamp,
                     OppositeOrderId = oppositeOrderId,
@@ -190,31 +186,6 @@ namespace Lykke.Job.TradesConverter.Services
             _log.WriteWarning(nameof(OrdersConverter), nameof(GetWalletInfoAsync), $"Couldn't get wallet from ClientAccount service for {clientId}");
 
             return (clientId, clientIdHash, clientId, "N/A");
-        }
-
-        private Direction ChooseDirection(
-            string assetPair,
-            string assetId,
-            string otherAssetId,
-            bool straight,
-            double orderVolume)
-        {
-            bool isBuy = !(straight ^ (orderVolume >= 0));
-            if (assetId.Length < 20) // not GUID
-            {
-                if (assetPair.EndsWith(assetId))
-                    isBuy = !isBuy;
-            }
-            else if (otherAssetId.Length < 20) // not GUID
-            {
-                if (!assetPair.EndsWith(otherAssetId))
-                    isBuy = !isBuy;
-            }
-
-            if (orderVolume < 0)
-                _log.WriteInfoAsync(nameof(ChooseDirection), $"{assetPair}_{assetId}_{otherAssetId}_{straight}", isBuy.ToString());
-
-            return isBuy ? Direction.Buy : Direction.Sell;
         }
 
         private static TradeLogItemFee ConvertFee(
