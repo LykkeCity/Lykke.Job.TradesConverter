@@ -7,7 +7,7 @@
     <ProjectReference Include="..\..\contract\Lykke.Job.TradesConverter.Contract\Lykke.Job.TradesConverter.Contract.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Lykke.Common" Version="7.1.0" />
-    <PackageReference Include="Lykke.MatchingEngineConnector" Version="8.3.0" />
+    <PackageReference Include="Lykke.Common" Version="7.3.1" />
+    <PackageReference Include="Lykke.MatchingEngineConnector" Version="8.5.0" />
   </ItemGroup>
 </Project>
