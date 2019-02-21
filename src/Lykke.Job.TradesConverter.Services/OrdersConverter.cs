@@ -196,7 +196,12 @@ namespace Lykke.Job.TradesConverter.Services
         {
             var transfer = feeTransfers?.FirstOrDefault(f => f.AssetId == assetId);
             if (transfer == null)
-                return null;
+            {
+                if (feeTransfers != null && feeTransfers.Count == 1)
+                    transfer = feeTransfers.First();
+                else
+                    return null;
+            }
 
             var feeInstruction = feeInstructions.First(f => f.Index == transfer.Index);
 
